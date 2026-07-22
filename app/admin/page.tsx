@@ -56,7 +56,7 @@ export default function AdminPage() {
       title: derivedTitle,
       file_url: urlData.publicUrl,
       file_type: fileType,
-      display_seconds: 10,
+      display_seconds: 7,
       sort_order: sortOrder,
       active: true,
     })
