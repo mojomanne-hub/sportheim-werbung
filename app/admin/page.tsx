@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type Ad = {
@@ -16,9 +16,10 @@ type Ad = {
 export default function AdminPage() {
   const [ads, setAds] = useState<Ad[]>([])
   const [uploading, setUploading] = useState(false)
-  const [title, setTitle] = useState('')
-  const [seconds, setSeconds] = useState(10)
-  const [file, setFile] = useState<File | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false)
+  const dragItemIndex = useRef<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   const fetchAds = useCallback(async () => {
     const { data } = await supabase
@@ -32,15 +33,9 @@ export default function AdminPage() {
     fetchAds()
   }, [fetchAds])
 
-  const handleUpload = async () => {
-    if (!file || !title) {
-      alert('Bitte Titel und Datei auswählen')
-      return
-    }
-    setUploading(true)
-
+  const uploadSingleFile = async (file: File, sortOrder: number) => {
     const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}.${fileExt}`
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
     const fileType: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image'
 
     const { error: uploadError } = await supabase.storage
@@ -48,35 +43,69 @@ export default function AdminPage() {
       .upload(fileName, file)
 
     if (uploadError) {
-      alert('Fehler beim Hochladen: ' + uploadError.message)
-      setUploading(false)
-      return
+      throw new Error(uploadError.message)
     }
 
     const { data: urlData } = supabase.storage
       .from('ads-media')
       .getPublicUrl(fileName)
 
-    const maxOrder = ads.length > 0 ? Math.max(...ads.map((a) => a.sort_order)) : 0
+    const derivedTitle = file.name.replace(/\.[^/.]+$/, '')
 
     const { error: insertError } = await supabase.from('ads').insert({
-      title,
+      title: derivedTitle,
       file_url: urlData.publicUrl,
       file_type: fileType,
-      display_seconds: seconds,
-      sort_order: maxOrder + 1,
+      display_seconds: 10,
+      sort_order: sortOrder,
       active: true,
     })
 
     if (insertError) {
-      alert('Fehler beim Speichern: ' + insertError.message)
-    } else {
-      setTitle('')
-      setSeconds(10)
-      setFile(null)
-      fetchAds()
+      throw new Error(insertError.message)
     }
+  }
+
+  const handleFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList)
+    if (files.length === 0) return
+
+    setUploading(true)
+    setUploadProgress({ done: 0, total: files.length })
+
+    let maxOrder = ads.length > 0 ? Math.max(...ads.map((a) => a.sort_order)) : 0
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        maxOrder += 1
+        await uploadSingleFile(files[i], maxOrder)
+        setUploadProgress({ done: i + 1, total: files.length })
+      } catch (err: any) {
+        alert(`Fehler bei "${files[i].name}": ${err.message}`)
+      }
+    }
+
     setUploading(false)
+    setUploadProgress(null)
+    fetchAds()
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDraggingFiles(false)
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDraggingFiles(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDraggingFiles(false)
   }
 
   const toggleActive = async (ad: Ad) => {
@@ -95,15 +124,35 @@ export default function AdminPage() {
     fetchAds()
   }
 
-  const moveAd = async (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction
-    if (targetIndex < 0 || targetIndex >= ads.length) return
+  const handleItemDragStart = (index: number) => {
+    dragItemIndex.current = index
+  }
 
-    const current = ads[index]
-    const target = ads[targetIndex]
+  const handleItemDragEnter = (index: number) => {
+    setDragOverIndex(index)
+  }
 
-    await supabase.from('ads').update({ sort_order: target.sort_order }).eq('id', current.id)
-    await supabase.from('ads').update({ sort_order: current.sort_order }).eq('id', target.id)
+  const handleItemDragEnd = async () => {
+    const fromIndex = dragItemIndex.current
+    const toIndex = dragOverIndex
+
+    dragItemIndex.current = null
+    setDragOverIndex(null)
+
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) return
+
+    const reordered = [...ads]
+    const [moved] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, moved)
+
+    setAds(reordered)
+
+    await Promise.all(
+      reordered.map((ad, i) =>
+        supabase.from('ads').update({ sort_order: i + 1 }).eq('id', ad.id)
+      )
+    )
+
     fetchAds()
   }
 
@@ -134,85 +183,13 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5 mb-6">
-          <h2 className="font-semibold text-white mb-4">Neue Werbung hochladen</h2>
-          <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="Titel"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Anzeigedauer (Sekunden, nur für Bilder)"
-              value={seconds}
-              onChange={(e) => setSeconds(Number(e.target.value))}
-              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="file"
-              accept="image/*,video/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer"
-            />
-            <button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="bg-blue-600 hover:bg-blue-500 transition text-white px-4 py-2 rounded-lg disabled:opacity-50 font-medium"
-            >
-              {uploading ? 'Lädt hoch...' : 'Hochladen'}
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-white">Vorhandene Werbungen</h2>
-            <span className="text-sm text-gray-500">{ads.length} gesamt</span>
-          </div>
-
-          {ads.length === 0 && <p className="text-gray-500 text-sm">Noch keine Werbung hochgeladen.</p>}
-
-          <div className="space-y-2">
-            {ads.map((ad, index) => (
-              <div key={ad.id} className="border border-gray-800 bg-[#0d1220] rounded-lg p-3 flex items-center gap-3">
-                {ad.file_type === 'image' ? (
-                  <img src={ad.file_url} className="w-14 h-14 object-cover rounded-lg" />
-                ) : (
-                  <video src={ad.file_url} className="w-14 h-14 object-cover rounded-lg" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-100 truncate">{ad.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {ad.file_type === 'image' ? `${ad.display_seconds}s` : 'Video (volle Länge)'}
-                  </p>
-                </div>
-                {ad.file_type === 'image' && (
-                  <input
-                    type="number"
-                    value={ad.display_seconds}
-                    onChange={(e) => updateSeconds(ad, Number(e.target.value))}
-                    className="bg-[#161c2c] border border-gray-700 rounded-lg w-16 px-2 py-1 text-sm text-gray-100"
-                  />
-                )}
-                <button onClick={() => moveAd(index, -1)} className="px-2 py-1 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800">↑</button>
-                <button onClick={() => moveAd(index, 1)} className="px-2 py-1 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800">↓</button>
-                <button
-                  onClick={() => toggleActive(ad)}
-                  className={`px-2 py-1 rounded-lg text-sm font-medium ${ad.active ? 'bg-green-600/20 text-green-400' : 'bg-gray-700/40 text-gray-400'}`}
-                >
-                  {ad.active ? 'Aktiv' : 'Inaktiv'}
-                </button>
-                <button onClick={() => deleteAd(ad)} className="px-2 py-1 bg-red-600/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-600/30">
-                  Löschen
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          className={`bg-[#161c2c] border-2 border-dashed rounded-xl p-8 mb-6 text-center transition ${
+            isDraggingFiles ? 'border-blue-500 bg-blue-500/5' : 'border-gray-700'
+          }`}
+        >
+          <p className="text-gray-300 font-medium mb-1">Bilder/Videos hierher ziehen</p>
+          <p className="text-gray-500 text-sm mb-4">oder klicken, um Dateien auszuwählen (mehrere möglich)</p>
