@@ -19,7 +19,7 @@ export default function DisplayPage() {
 
   const fetchAds = useCallback(async () => {
     const { data } = await supabase
-      .from('ads')
+      .from('werbeanzeigen')
       .select('*')
       .eq('active', true)
       .order('sort_order', { ascending: true })
@@ -31,7 +31,7 @@ export default function DisplayPage() {
 
     const channel = supabase
       .channel('ads-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'werbeanzeigen' }, () => {
         fetchAds()
       })
       .subscribe()

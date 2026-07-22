@@ -23,7 +23,7 @@ export default function AdminPage() {
  
   const fetchAds = useCallback(async () => {
     const { data } = await supabase
-      .from('ads')
+      .from('werbeanzeigen')
       .select('*')
       .order('sort_order', { ascending: true })
     if (data) setAds(data)
@@ -39,7 +39,7 @@ export default function AdminPage() {
     const fileType: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image'
  
     const { error: uploadError } = await supabase.storage
-      .from('ads-media')
+      .from('werbeanzeigen-media')
       .upload(fileName, file)
  
     if (uploadError) {
@@ -47,12 +47,12 @@ export default function AdminPage() {
     }
  
     const { data: urlData } = supabase.storage
-      .from('ads-media')
+      .from('werbeanzeigen-media')
       .getPublicUrl(fileName)
  
     const derivedTitle = file.name.replace(/\.[^/.]+$/, '')
  
-    const { error: insertError } = await supabase.from('ads').insert({
+    const { error: insertError } = await supabase.from('werbeanzeigen').insert({
       title: derivedTitle,
       file_url: urlData.publicUrl,
       file_type: fileType,
@@ -109,7 +109,7 @@ export default function AdminPage() {
   }
  
   const toggleActive = async (ad: Ad) => {
-    const { error } = await supabase.from('ads').update({ active: !ad.active }).eq('id', ad.id)
+    const { error } = await supabase.from('werbeanzeigen').update({ active: !ad.active }).eq('id', ad.id)
     if (error) {
       alert('Fehler beim Ändern: ' + error.message)
       return
@@ -118,15 +118,19 @@ export default function AdminPage() {
   }
  
   const updateSeconds = async (ad: Ad, newSeconds: number) => {
-    await supabase.from('ads').update({ display_seconds: newSeconds }).eq('id', ad.id)
+    await supabase.from('werbeanzeigen').update({ display_seconds: newSeconds }).eq('id', ad.id)
     fetchAds()
   }
  
   const deleteAd = async (ad: Ad) => {
-    if (!confirm(`"${ad.title}" wirklich löschen?`)) return
-    await supabase.from('ads').delete().eq('id', ad.id)
-    fetchAds()
+  if (!confirm(`"${ad.title}" wirklich löschen?`)) return
+  const { error } = await supabase.from('werbeanzeigen').delete().eq('id', ad.id)
+  if (error) {
+    alert('Fehler beim Löschen: ' + error.message)
+    return
   }
+  fetchAds()
+}
  
   // --- Sortierung per Drag & Drop (nur über den Griff ⠿ startbar) ---
  
@@ -162,7 +166,7 @@ export default function AdminPage() {
  
     const { error } = await Promise.all(
       reordered.map((ad, i) =>
-        supabase.from('ads').update({ sort_order: i + 1 }).eq('id', ad.id)
+        supabase.from('werbeanzeigen').update({ sort_order: i + 1 }).eq('id', ad.id)
       )
     ).then((results) => {
       const failed = results.find((r) => r.error)
