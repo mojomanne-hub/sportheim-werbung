@@ -31,9 +31,10 @@ export default function GalleryPage() {
 }, [fetchAds])
 
 useEffect(() => {
-  supabase.from('gallery_visits').insert({}).then()
+  supabase.from('gallery_visits').insert({}).then(({ error }) => {
+    if (error) console.error('Tracking-Fehler:', error)
+  })
 }, [])
-
   const goNext = () => {
     setIndex((prev) => (prev + 1) % ads.length)
   }
