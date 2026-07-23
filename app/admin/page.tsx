@@ -36,11 +36,26 @@ useEffect(() => {
 
 useEffect(() => {
   const fetchVisits = async () => {
-    // ... (bleibt wie es ist)
+    const now = new Date()
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    const [totalRes, weekRes, monthRes] = await Promise.all([
+      supabase.from('gallery_visits').select('*', { count: 'exact', head: true }),
+      supabase.from('gallery_visits').select('*', { count: 'exact', head: true }).gte('visited_at', weekAgo),
+      supabase.from('gallery_visits').select('*', { count: 'exact', head: true }).gte('visited_at', monthAgo),
+    ])
+
+    if (totalRes.error) console.error('Fehler beim Laden der Besucherzahlen:', totalRes.error)
+
+    setVisitStats({
+      total: totalRes.count ?? 0,
+      week: weekRes.count ?? 0,
+      month: monthRes.count ?? 0,
+    })
   }
   fetchVisits()
-}, [])
-  const uploadSingleFile = async (file: File, sortOrder: number) => {
+}, [])  const uploadSingleFile = async (file: File, sortOrder: number) => {
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
     const fileType: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image'
