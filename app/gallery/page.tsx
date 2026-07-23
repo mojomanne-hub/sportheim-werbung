@@ -26,9 +26,9 @@ export default function GalleryPage() {
     if (data) setAds(data)
   }, [])
 
-  useEffect(() => {
-    fetchAds()
-  }, [fetchAds])
+ useEffect(() => {
+  supabase.from('gallery_visits').insert({}).then()
+}, [])
 
   const goNext = () => {
     setIndex((prev) => (prev + 1) % ads.length)
