@@ -20,7 +20,7 @@ export default function AdminPage() {
   const [isDraggingFiles, setIsDraggingFiles] = useState(false)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [draggableIndex, setDraggableIndex] = useState<number | null>(null)
- const [visitCount, setVisitCount] = useState<number | null>(null)
+ const [visitStats, setVisitStats] = useState<{ total: number; week: number; month: number } | null>(null)
 
   const fetchAds = useCallback(async () => {
     const { data } = await supabase
@@ -30,12 +30,20 @@ export default function AdminPage() {
     if (data) setAds(data)
   }, [])
  
- useEffect(() => {
+
+useEffect(() => {
   const fetchVisits = async () => {
-    const { count } = await supabase
-      .from('gallery_visits')
-      .select('*', { count: 'exact', head: true })
-    setVisitCount(count ?? 0)
+    const now = new Date()
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    const [{ count: total }, { count: week }, { count: month }] = await Promise.all([
+      supabase.from('gallery_visits').select('*', { count: 'exact', head: true }),
+      supabase.from('gallery_visits').select('*', { count: 'exact', head: true }).gte('visited_at', weekAgo),
+      supabase.from('gallery_visits').select('*', { count: 'exact', head: true }).gte('visited_at', monthAgo),
+    ])
+
+    setVisitStats({ total: total ?? 0, week: week ?? 0, month: month ?? 0 })
   }
   fetchVisits()
 }, [])
@@ -202,24 +210,26 @@ export default function AdminPage() {
           <p className="text-sm text-gray-500 tracking-wide">VERWALTUNG</p>
         </div>
  
-        <div className="grid grid-cols-3 gap-4 mb-6">
-         <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
+    <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
   <div className="flex items-center justify-between mb-3">
     <span className="text-xs text-gray-500 tracking-widest">QR-SCANS</span>
     <div className="w-8 h-8 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400">◫</div>
   </div>
-  <p className="text-3xl font-bold text-white">{visitCount ?? '–'}</p>
+  <div className="flex items-end gap-4">
+    <div>
+      <p className="text-3xl font-bold text-white">{visitStats?.total ?? '–'}</p>
+      <p className="text-xs text-gray-500">Gesamt</p>
+    </div>
+    <div>
+      <p className="text-lg font-semibold text-gray-300">{visitStats?.month ?? '–'}</p>
+      <p className="text-xs text-gray-500">30 Tage</p>
+    </div>
+    <div>
+      <p className="text-lg font-semibold text-gray-300">{visitStats?.week ?? '–'}</p>
+      <p className="text-xs text-gray-500">7 Tage</p>
+    </div>
+  </div>
 </div>
-            <p className="text-3xl font-bold text-white">{ads.length}</p>
-          </div>
-          <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-gray-500 tracking-widest">AKTIV</span>
-              <div className="w-8 h-8 rounded-lg bg-green-600/20 flex items-center justify-center text-green-400">✓</div>
-            </div>
-            <p className="text-3xl font-bold text-white">{activeCount}</p>
-          </div>
-        </div>
  
         <div
           onDrop={handleDrop}
