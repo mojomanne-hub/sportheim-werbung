@@ -27,6 +27,10 @@ export default function GalleryPage() {
   }, [])
 
  useEffect(() => {
+  fetchAds()
+}, [fetchAds])
+
+useEffect(() => {
   supabase.from('gallery_visits').insert({}).then()
 }, [])
 
