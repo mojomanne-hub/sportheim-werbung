@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.sportheim_werbung.twa",
+        "sha256_cert_fingerprints": ["CF:81:3C:AF:CE:37:28:9B:1E:98:DA:0B:BA:0F:66:42:6E:90:F4:8D:9A:83:16:C5:FC:88:85:63:D3:4D:63:ED"]
+      }
+    }]
