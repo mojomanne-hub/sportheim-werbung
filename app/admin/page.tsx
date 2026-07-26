@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type Ad = {
@@ -20,7 +20,9 @@ export default function AdminPage() {
   const [isDraggingFiles, setIsDraggingFiles] = useState(false)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [draggableIndex, setDraggableIndex] = useState<number | null>(null)
+  const [touchDraggingIndex, setTouchDraggingIndex] = useState<number | null>(null)
   const [visitStats, setVisitStats] = useState<{ total: number; week: number; month: number } | null>(null)
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const fetchAds = useCallback(async () => {
     const { data } = await supabase
@@ -156,6 +158,20 @@ export default function AdminPage() {
     fetchAds()
   }
 
+  const persistReorder = async (reordered: Ad[]) => {
+    setAds(reordered)
+    const results = await Promise.all(
+      reordered.map((ad, i) =>
+        supabase.from('werbeanzeigen').update({ sort_order: i + 1 }).eq('id', ad.id)
+      )
+    )
+    const failed = results.find((r) => r.error)
+    if (failed?.error) {
+      alert('Fehler beim Speichern der Reihenfolge: ' + failed.error.message)
+    }
+    fetchAds()
+  }
+
   const handleHandleMouseDown = (index: number) => {
     setDraggableIndex(index)
   }
@@ -184,25 +200,48 @@ export default function AdminPage() {
     const [moved] = reordered.splice(fromIndex, 1)
     reordered.splice(toIndex, 0, moved)
 
-    setAds(reordered)
-
-    const results = await Promise.all(
-      reordered.map((ad, i) =>
-        supabase.from('werbeanzeigen').update({ sort_order: i + 1 }).eq('id', ad.id)
-      )
-    )
-    const failed = results.find((r) => r.error)
-
-    if (failed?.error) {
-      alert('Fehler beim Speichern der Reihenfolge: ' + failed.error.message)
-    }
-
-    fetchAds()
+    await persistReorder(reordered)
   }
 
   const handleItemDragEnd = () => {
     setDragOverIndex(null)
     setDraggableIndex(null)
+  }
+
+  const handleTouchStart = (index: number) => {
+    setTouchDraggingIndex(index)
+    setDragOverIndex(index)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLSpanElement>) => {
+    if (touchDraggingIndex === null) return
+    const touchY = e.touches[0].clientY
+
+    for (let i = 0; i < itemRefs.current.length; i++) {
+      const el = itemRefs.current[i]
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      if (touchY >= rect.top && touchY <= rect.bottom) {
+        setDragOverIndex(i)
+        break
+      }
+    }
+  }
+
+  const handleTouchEnd = async () => {
+    const fromIndex = touchDraggingIndex
+    const toIndex = dragOverIndex
+
+    setTouchDraggingIndex(null)
+    setDragOverIndex(null)
+
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) return
+
+    const reordered = [...ads]
+    const [moved] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, moved)
+
+    await persistReorder(reordered)
   }
 
   const activeCount = ads.filter((a) => a.active).length
@@ -297,6 +336,9 @@ export default function AdminPage() {
             {ads.map((ad, index) => (
               <div
                 key={ad.id}
+                ref={(el) => {
+                  itemRefs.current[index] = el
+                }}
                 draggable={draggableIndex === index}
                 onDragStart={(e) => handleItemDragStart(e, index)}
                 onDragOver={(e) => handleItemDragOver(e, index)}
@@ -308,7 +350,11 @@ export default function AdminPage() {
               >
                 <span
                   onMouseDown={() => handleHandleMouseDown(index)}
-                  className="text-gray-500 select-none cursor-move text-lg px-1"
+                  onTouchStart={() => handleTouchStart(index)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  style={{ touchAction: 'none' }}
+                  className="text-gray-500 select-none cursor-move text-xl px-2 py-1"
                   title="Ziehen zum Sortieren"
                 >
                   ⠿
