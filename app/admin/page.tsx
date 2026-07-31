@@ -247,7 +247,7 @@ export default function AdminPage() {
   const activeCount = ads.filter((a) => a.active).length
 
   return (
-    <div className="min-h-screen bg-[#0d1220] text-gray-100 p-6 md:p-10">
+  <div className="min-h-screen bg-[#0d1220] text-gray-100 p-2 sm:p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Sportheim Werbung</h1>
@@ -262,7 +262,7 @@ export default function AdminPage() {
             </div>
             <p className="text-3xl font-bold text-white">{ads.length}</p>
           </div>
-          <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
+          <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-2 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-gray-500 tracking-widest">AKTIV</span>
               <div className="w-8 h-8 rounded-lg bg-green-600/20 flex items-center justify-center text-green-400">✓</div>
@@ -344,7 +344,7 @@ export default function AdminPage() {
                 onDragOver={(e) => handleItemDragOver(e, index)}
                 onDrop={(e) => handleItemDrop(e, index)}
                 onDragEnd={handleItemDragEnd}
-               className={`border rounded-lg p-3 flex flex-wrap items-center gap-2 transition ${
+               className={`border rounded-lg p-2 flex flex-wrap items-center gap-2 transition ${
                   dragOverIndex === index ? 'border-blue-500 bg-blue-500/5' : 'border-gray-800 bg-[#0d1220]'
                 }`}
               >
