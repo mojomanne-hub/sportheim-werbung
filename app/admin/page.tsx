@@ -375,7 +375,7 @@ export default function AdminPage() {
                     type="number"
                     value={ad.display_seconds}
                     onChange={(e) => updateSeconds(ad, Number(e.target.value))}
-                    className="bg-[#161c2c] border border-gray-700 rounded-lg w-12 px-1 py-1 text-sm text-gray-100"
+                    className="bg-[#161c2c] border border-gray-700 rounded-lg w-8 px-1 py-1 text-sm text-gray-100"
                   />
                 )}
                 <button
