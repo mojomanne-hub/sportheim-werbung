@@ -1,32 +1,46 @@
-export default function ErgebnissePage() {
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+
+export default function WidgetPage() {
+  const params = useParams()
+  const id = params?.id as string
+  const [html, setHtml] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) return
+
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('werbeanzeigen')
+          .select('widget_code')
+          .eq('id', id)
+          .single()
+
+        if (data?.widget_code) {
+          setHtml(data.widget_code)
+        }
+      } catch (err) {
+        console.error('Widget Fehler:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [id])
+
+  if (loading) {
+    return <div className="min-h-screen bg-white flex items-center justify-center">Lädt...</div>
+  }
+
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      overflow: 'hidden',
-      background: '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <div style={{
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
-        <iframe
-          src="https://www.fussball.de/spieltagsuebersicht/bezirksliga-bezirk-oberschwaben-bezirksliga-herren-saison2627-wuerttemberg/-/staffel/0319U1GHVS000006VS5489BTVSK8S3O6-G#!/"
-          style={{
-            width: '150%',
-            height: '150%',
-            border: 'none',
-            marginLeft: '-15%',
-            marginTop: '-20%',
-            position: 'absolute',
-          }}
-        />
-      </div>
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
 }
