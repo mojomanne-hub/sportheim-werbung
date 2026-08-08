@@ -7,54 +7,65 @@ import { supabase } from '@/lib/supabase'
 export default function WidgetPage() {
   const params = useParams()
   const id = params?.id as string
-  const [html, setHtml] = useState('')
-  const [scriptSrcs, setScriptSrcs] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from('werbeanzeigen')
-        .select('title, widget_code')
-        .eq('id', id)
-        .single()
+      try {
+        if (!id) {
+          setError('Keine ID gefunden')
+          return
+        }
 
-      if (!data?.widget_code) return
+        const { data, error: queryError } = await supabase
+          .from('werbeanzeigen')
+          .select('widget_code')
+          .eq('id', id)
+          .single()
 
-      const code: string = data.widget_code
+        if (queryError) {
+          setError('Widget nicht gefunden: ' + queryError.message)
+          return
+        }
 
-      const scriptRegex = /<script[^>]*src=["']([^"']+)["'][^>]*><\/script>/gi
-      const srcs: string[] = []
-      let match
-      while ((match = scriptRegex.exec(code)) !== null) {
-        srcs.push(match[1])
+        if (!data?.widget_code) {
+          setError('Kein Code vorhanden')
+          return
+        }
+
+        // Warte kurz, dann setze den HTML direkt ins DOM (bypass React)
+        setTimeout(() => {
+          const container = document.getElementById('widget-container')
+          if (container) {
+            container.innerHTML = data.widget_code
+
+            // Lade alle Scripts nach
+            const scripts = container.querySelectorAll('script')
+            scripts.forEach((oldScript) => {
+              const newScript = document.createElement('script')
+              newScript.src = oldScript.src
+              newScript.async = true
+              document.body.appendChild(newScript)
+            })
+          }
+          setLoading(false)
+        }, 100)
+      } catch (err: any) {
+        setError('Fehler: ' + err.message)
+        setLoading(false)
       }
-      const withoutScripts = code.replace(/<script[\s\S]*?<\/script>/gi, '')
-
-      setScriptSrcs(srcs)
-      setHtml(withoutScripts)
     }
+
     if (id) load()
   }, [id])
 
-  useEffect(() => {
-    const loadedScripts: HTMLScriptElement[] = []
-
-    scriptSrcs.forEach((src) => {
-      const script = document.createElement('script')
-      script.src = src
-      script.async = true
-      document.body.appendChild(script)
-      loadedScripts.push(script)
-    })
-
-    return () => {
-      loadedScripts.forEach((s) => s.remove())
-    }
-  }, [scriptSrcs])
+  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center">Lädt...</div>
+  if (error) return <div className="min-h-screen bg-white flex items-center justify-center text-red-600">{error}</div>
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-3xl" dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="min-h-screen bg-white p-6">
+      <div id="widget-container" className="w-full max-w-3xl mx-auto" />
     </div>
   )
 }
