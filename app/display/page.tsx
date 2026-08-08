@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase'
 type Ad = {
   id: string
   title: string
-  file_url: string
-  file_type: 'image' | 'video'
+  file_url: string | null
+  file_type: 'image' | 'video' | 'widget'
+  widget_code: string | null
   display_seconds: number
   sort_order: number
   active: boolean
@@ -42,11 +43,39 @@ export default function DisplayPage() {
   }, [fetchAds])
 
   useEffect(() => {
+    let wakeLock: any = null
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen')
+        }
+      } catch (err) {
+        console.log('Wake Lock nicht verfügbar:', err)
+      }
+    }
+
+    requestWakeLock()
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (wakeLock) wakeLock.release()
+    }
+  }, [])
+
+  useEffect(() => {
     if (ads.length === 0) return
     const current = ads[currentIndex]
     if (!current) return
 
-    if (current.file_type === 'image') {
+    if (current.file_type !== 'video') {
       const timer = setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % ads.length)
       }, current.display_seconds * 1000)
@@ -74,17 +103,24 @@ export default function DisplayPage() {
 
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
-      {current.file_type === 'image' ? (
+      {current.file_type === 'widget' ? (
+        <iframe
+          key={current.id}
+          src={`/widget/${current.id}`}
+          className="w-full h-full border-0"
+          title={current.title}
+        />
+      ) : current.file_type === 'image' ? (
         <img
           key={current.id}
-          src={current.file_url}
+          src={current.file_url ?? ''}
           alt={current.title}
           className="w-full h-full object-contain"
         />
       ) : (
         <video
           key={current.id}
-          src={current.file_url}
+          src={current.file_url ?? ''}
           autoPlay
           muted
           onEnded={handleVideoEnded}

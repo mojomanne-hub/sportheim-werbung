@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase'
 type Ad = {
   id: string
   title: string
-  file_url: string
-  file_type: 'image' | 'video'
+  file_url: string | null
+  file_type: 'image' | 'video' | 'widget'
+  widget_code: string | null
   display_seconds: number
   sort_order: number
   active: boolean
@@ -22,6 +23,10 @@ export default function AdminPage() {
   const [draggableIndex, setDraggableIndex] = useState<number | null>(null)
   const [touchDraggingIndex, setTouchDraggingIndex] = useState<number | null>(null)
   const [visitStats, setVisitStats] = useState<{ total: number; week: number; month: number } | null>(null)
+  const [widgetTitle, setWidgetTitle] = useState('')
+  const [widgetCode, setWidgetCode] = useState('')
+  const [widgetSeconds, setWidgetSeconds] = useState(15)
+  const [savingWidget, setSavingWidget] = useState(false)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const fetchAds = useCallback(async () => {
@@ -90,6 +95,27 @@ export default function AdminPage() {
     if (insertError) {
       throw new Error(insertError.message)
     }
+  }
+
+  const addWidget = async (title: string, code: string, seconds: number) => {
+    const maxOrder = ads.length > 0 ? Math.max(...ads.map((a) => a.sort_order)) : 0
+
+    const { error } = await supabase.from('werbeanzeigen').insert({
+      title,
+      file_url: null,
+      file_type: 'widget',
+      widget_code: code,
+      display_seconds: seconds,
+      sort_order: maxOrder + 1,
+      active: true,
+    })
+
+    if (error) {
+      alert('Fehler beim Speichern: ' + error.message)
+      return false
+    }
+    fetchAds()
+    return true
   }
 
   const handleFiles = async (fileList: FileList | File[]) => {
@@ -247,7 +273,7 @@ export default function AdminPage() {
   const activeCount = ads.filter((a) => a.active).length
 
   return (
-  <div className="min-h-screen bg-[#0d1220] text-gray-100 p-2 sm:p-6 md:p-10">
+    <div className="min-h-screen bg-[#0d1220] text-gray-100 p-2 sm:p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Sportheim Werbung</h1>
@@ -324,13 +350,63 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
+        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5 mb-6">
+          <h2 className="font-semibold text-white mb-1">Baustein hinzufügen</h2>
+          <p className="text-gray-500 text-xs mb-4">
+            Für Widgets wie Tabelle, Spieltag, 2. Mannschaft etc. – füge hier den Einbettungscode ein
+          </p>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Titel (z.B. 'Tabelle 1. Mannschaft')"
+              value={widgetTitle}
+              onChange={(e) => setWidgetTitle(e.target.value)}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            <textarea
+              placeholder="Einbettungscode hier einfügen (div + script)"
+              value={widgetCode}
+              onChange={(e) => setWidgetCode(e.target.value)}
+              rows={4}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-xs"
+            />
+            <input
+              type="number"
+              placeholder="Anzeigedauer in Sekunden"
+              value={widgetSeconds}
+              onChange={(e) => setWidgetSeconds(Number(e.target.value))}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            <button
+              onClick={async () => {
+                if (!widgetTitle || !widgetCode) {
+                  alert('Bitte Titel und Einbettungscode angeben')
+                  return
+                }
+                setSavingWidget(true)
+                const ok = await addWidget(widgetTitle, widgetCode, widgetSeconds)
+                if (ok) {
+                  setWidgetTitle('')
+                  setWidgetCode('')
+                  setWidgetSeconds(15)
+                }
+                setSavingWidget(false)
+              }}
+              disabled={savingWidget}
+              className="bg-purple-600 hover:bg-purple-500 transition text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 w-full"
+            >
+              {savingWidget ? 'Speichert...' : 'Baustein hinzufügen'}
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-2 sm:p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-white">Vorhandene Werbungen</h2>
+            <h2 className="font-semibold text-white">Vorhandene Werbungen & Bausteine</h2>
             <span className="text-sm text-gray-500">{ads.length} gesamt · am Griff ⠿ ziehen zum Sortieren</span>
           </div>
 
-          {ads.length === 0 && <p className="text-gray-500 text-sm">Noch keine Werbung hochgeladen.</p>}
+          {ads.length === 0 && <p className="text-gray-500 text-sm">Noch keine Werbung oder Bausteine hinzugefügt.</p>}
 
           <div className="space-y-2">
             {ads.map((ad, index) => (
@@ -344,7 +420,7 @@ export default function AdminPage() {
                 onDragOver={(e) => handleItemDragOver(e, index)}
                 onDrop={(e) => handleItemDrop(e, index)}
                 onDragEnd={handleItemDragEnd}
-               className={`border rounded-lg p-2 flex flex-wrap items-center gap-2 transition ${
+                className={`border rounded-lg p-2 flex flex-wrap items-center gap-2 transition ${
                   dragOverIndex === index ? 'border-blue-500 bg-blue-500/5' : 'border-gray-800 bg-[#0d1220]'
                 }`}
               >
@@ -360,22 +436,26 @@ export default function AdminPage() {
                   ⠿
                 </span>
                 {ad.file_type === 'image' ? (
-                  <img src={ad.file_url} className="w-14 h-14 object-cover rounded-lg" />
+                  <img src={ad.file_url ?? ''} className="w-14 h-14 object-cover rounded-lg" />
+                ) : ad.file_type === 'video' ? (
+                  <video src={ad.file_url ?? ''} className="w-14 h-14 object-cover rounded-lg" />
                 ) : (
-                  <video src={ad.file_url} className="w-14 h-14 object-cover rounded-lg" />
+                  <div className="w-14 h-14 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">
+                    ◫
+                  </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-100 truncate">{ad.title}</p>
                   <p className="text-xs text-gray-500">
-                    {ad.file_type === 'image' ? `${ad.display_seconds}s` : 'Video (volle Länge)'}
+                    {ad.file_type === 'video' ? 'Video (volle Länge)' : `${ad.display_seconds}s`}
                   </p>
                 </div>
-                {ad.file_type === 'image' && (
+                {ad.file_type !== 'video' && (
                   <input
                     type="number"
                     value={ad.display_seconds}
                     onChange={(e) => updateSeconds(ad, Number(e.target.value))}
-                    className="bg-[#161c2c] border border-gray-700 rounded-lg w-8 px-1 py-1 text-sm text-gray-100"
+                    className="bg-[#161c2c] border border-gray-700 rounded-lg w-12 px-1 py-1 text-sm text-gray-100"
                   />
                 )}
                 <button
@@ -386,19 +466,19 @@ export default function AdminPage() {
                 >
                   {ad.active ? 'Aktiv' : 'Inaktiv'}
                 </button>
-               <button
-  onClick={() => deleteAd(ad)}
-  aria-label="Löschen"
-  className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 flex-shrink-0"
->
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18" />
-    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-    <line x1="10" y1="11" x2="10" y2="17" />
-    <line x1="14" y1="11" x2="14" y2="17" />
-  </svg>
-</button>
+                <button
+                  onClick={() => deleteAd(ad)}
+                  aria-label="Löschen"
+                  className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 flex-shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
