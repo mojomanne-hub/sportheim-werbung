@@ -1,46 +1,21 @@
-'use client'
+import Script from 'next/script'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-
-export default function WidgetPage() {
-  const params = useParams()
-  const id = params?.id as string
-  const [html, setHtml] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!id) return
-
-    const load = async () => {
-      try {
-        const { data } = await supabase
-          .from('werbeanzeigen')
-          .select('widget_code')
-          .eq('id', id)
-          .single()
-
-        if (data?.widget_code) {
-          setHtml(data.widget_code)
-        }
-      } catch (err) {
-        console.error('Widget Fehler:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [id])
-
-  if (loading) {
-    return <div className="min-h-screen bg-white flex items-center justify-center">Lädt...</div>
-  }
-
+export default function ErgebnissePage() {
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+      <div className="w-full max-w-3xl">
+        <div
+          className="fussballde_widget"
+          data-id="2579f34a-aa3b-4d08-b63b-3ebacade4e12"
+          data-type="table"
+          style={{ width: '100%' }}
+        />
+      </div>
+
+      <Script
+        src="https://www.fussball.de/widgets.js"
+        strategy="afterInteractive"
+      />
     </div>
   )
 }
