@@ -351,55 +351,62 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5 mb-6">
-          <h2 className="font-semibold text-white mb-1">Baustein hinzufügen</h2>
-          <p className="text-gray-500 text-xs mb-4">
-            Für Widgets wie Tabelle, Spieltag, 2. Mannschaft etc. – füge hier den Einbettungscode ein
-          </p>
-          <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="Titel (z.B. 'Tabelle 1. Mannschaft')"
-              value={widgetTitle}
-              onChange={(e) => setWidgetTitle(e.target.value)}
-              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-            <textarea
-              placeholder="Einbettungscode hier einfügen (div + script)"
-              value={widgetCode}
-              onChange={(e) => setWidgetCode(e.target.value)}
-              rows={4}
-              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-xs"
-            />
-            <input
-              type="number"
-              placeholder="Anzeigedauer in Sekunden"
-              value={widgetSeconds}
-              onChange={(e) => setWidgetSeconds(Number(e.target.value))}
-              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-            <button
-              onClick={async () => {
-                if (!widgetTitle || !widgetCode) {
-                  alert('Bitte Titel und Einbettungscode angeben')
-                  return
-                }
-                setSavingWidget(true)
-                const ok = await addWidget(widgetTitle, widgetCode, widgetSeconds)
-                if (ok) {
-                  setWidgetTitle('')
-                  setWidgetCode('')
-                  setWidgetSeconds(15)
-                }
-                setSavingWidget(false)
-              }}
-              disabled={savingWidget}
-              className="bg-purple-600 hover:bg-purple-500 transition text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 w-full"
-            >
-              {savingWidget ? 'Speichert...' : 'Baustein hinzufügen'}
-            </button>
-          </div>
-        </div>
+      <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5 mb-6">
+  <h2 className="font-semibold text-white mb-1">Baustein hinzufügen</h2>
+  <p className="text-gray-500 text-xs mb-4">
+    Für Widgets, Links (Spiele, Tabellen), etc.
+  </p>
+  <div className="space-y-3">
+    <input
+      type="text"
+      placeholder="Titel (z.B. 'Spiel gegen Bad Schussenried')"
+      value={widgetTitle}
+      onChange={(e) => setWidgetTitle(e.target.value)}
+      className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+    />
+    <textarea
+      placeholder="Einbettungscode ODER Link-URL (z.B. https://...)"
+      value={widgetCode}
+      onChange={(e) => setWidgetCode(e.target.value)}
+      rows={4}
+      className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-xs"
+    />
+    <input
+      type="number"
+      placeholder="Anzeigedauer in Sekunden"
+      value={widgetSeconds}
+      onChange={(e) => setWidgetSeconds(Number(e.target.value))}
+      className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+    />
+    <button
+      onClick={async () => {
+        if (!widgetTitle || !widgetCode) {
+          alert('Bitte Titel und Code/Link angeben')
+          return
+        }
+        
+        // Wenn es ein Link ist (mit http/https), wrappen wir ihn in einen iframe-Code
+        let finalCode = widgetCode
+        if (widgetCode.startsWith('http')) {
+          finalCode = `<iframe src="${widgetCode}" width="100%" height="100%" frameborder="0" style="border: none; width: 100vw; height: 100vh;"></iframe>`
+        }
+        
+        setSavingWidget(true)
+        const ok = await addWidget(widgetTitle, finalCode, widgetSeconds)
+        if (ok) {
+          setWidgetTitle('')
+          setWidgetCode('')
+          setWidgetSeconds(15)
+        }
+        setSavingWidget(false)
+      }}
+      disabled={savingWidget}
+      className="bg-purple-600 hover:bg-purple-500 transition text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 w-full"
+    >
+      {savingWidget ? 'Speichert...' : 'Baustein hinzufügen'}
+    </button>
+  </div>
+</div>
 
         <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-2 sm:p-5">
           <div className="flex items-center justify-between mb-4">
