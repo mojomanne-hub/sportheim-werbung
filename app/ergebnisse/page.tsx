@@ -2,17 +2,15 @@ import Script from 'next/script'
 
 export default function ErgebnissePage() {
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', transform: 'scale(0.5)', transformOrigin: 'top left', marginLeft: '-50%', marginTop: '-50%' }}>
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-3xl">
-          <div className="bg-white rounded-xl p-4">
-            <div
-              className="fussballde_widget"
-              data-id="2579f34a-aa3b-4d08-b63b-3ebacade4e12"
-              data-type="table"
-              style={{ width: '100%' }}
-            />
-          </div>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-3xl">
+        <div className="bg-white rounded-xl p-4">
+          <div
+            className="fussballde_widget"
+            data-id="2579f34a-aa3b-4d08-b63b-3ebacade4e12"
+            data-type="table"
+            style={{ width: '100%' }}
+          />
         </div>
       </div>
 
