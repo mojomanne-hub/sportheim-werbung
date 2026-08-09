@@ -1,0 +1,25 @@
+import Script from 'next/script'
+
+export default function AcceptCookiesPage() {
+  return (
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-3xl">
+        <h1 className="text-xl font-bold mb-4 text-center">Cookies akzeptieren</h1>
+        
+        <div className="bg-white rounded-xl p-4">
+          <div
+            className="fussballde_widget"
+            data-id="2579f34a-aa3b-4d08-b63b-3ebacade4e12"
+            data-type="table"
+            style={{ width: '100%' }}
+          />
+        </div>
+      </div>
+
+      <Script
+        src="https://www.fussball.de/widgets.js"
+        strategy="afterInteractive"
+      />
+    </div>
+  )
+}
