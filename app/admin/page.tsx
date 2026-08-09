@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [widgetCode, setWidgetCode] = useState('')
   const [widgetSeconds, setWidgetSeconds] = useState(15)
   const [savingWidget, setSavingWidget] = useState(false)
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const fetchAds = useCallback(async () => {
@@ -288,7 +289,7 @@ export default function AdminPage() {
             </div>
             <p className="text-3xl font-bold text-white">{ads.length}</p>
           </div>
-          <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-2 sm:p-5">
+          <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-gray-500 tracking-widest">AKTIV</span>
               <div className="w-8 h-8 rounded-lg bg-green-600/20 flex items-center justify-center text-green-400">✓</div>
@@ -435,21 +436,30 @@ export default function AdminPage() {
                 >
                   ⠿
                 </span>
+                
                 {ad.file_type === 'image' ? (
-                  <img src={ad.file_url ?? ''} className="w-14 h-14 object-cover rounded-lg" />
+                  <button
+                    onClick={() => setSelectedImageUrl(ad.file_url)}
+                    className="w-14 h-14 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition flex-shrink-0"
+                    title="Klick für Vorschau"
+                  >
+                    <img src={ad.file_url ?? ''} className="w-full h-full object-cover" alt={ad.title} />
+                  </button>
                 ) : ad.file_type === 'video' ? (
-                  <video src={ad.file_url ?? ''} className="w-14 h-14 object-cover rounded-lg" />
+                  <video src={ad.file_url ?? ''} className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
                 ) : (
                   <div className="w-14 h-14 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">
                     ◫
                   </div>
                 )}
+                
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-100 truncate">{ad.title}</p>
                   <p className="text-xs text-gray-500">
                     {ad.file_type === 'video' ? 'Video (volle Länge)' : `${ad.display_seconds}s`}
                   </p>
                 </div>
+                
                 {ad.file_type !== 'video' && (
                   <input
                     type="number"
@@ -458,6 +468,7 @@ export default function AdminPage() {
                     className="bg-[#161c2c] border border-gray-700 rounded-lg w-12 px-1 py-1 text-sm text-gray-100"
                   />
                 )}
+                
                 <button
                   onClick={() => toggleActive(ad)}
                   className={`px-2 py-1 rounded-lg text-sm font-medium ${
@@ -466,6 +477,7 @@ export default function AdminPage() {
                 >
                   {ad.active ? 'Aktiv' : 'Inaktiv'}
                 </button>
+                
                 <button
                   onClick={() => deleteAd(ad)}
                   aria-label="Löschen"
@@ -484,6 +496,34 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Bild-Vorschau Modal */}
+      {selectedImageUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
+          onClick={() => setSelectedImageUrl(null)}
+        >
+          <div
+            className="bg-[#161c2c] rounded-xl border border-gray-700 p-4 max-w-2xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">Bild-Vorschau</h3>
+              <button
+                onClick={() => setSelectedImageUrl(null)}
+                className="text-gray-400 hover:text-gray-200 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <img
+              src={selectedImageUrl}
+              alt="Vorschau"
+              className="w-full rounded-lg object-contain max-h-96"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
