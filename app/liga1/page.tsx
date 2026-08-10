@@ -13,7 +13,7 @@ export default function SpielplanPage() {
         marginTop: '-5%',
       }}>
         <iframe
-          src="https://sportheim-werbung.vercel.app/widget/9c8ff5e1-c06d-49eb-be29-a6af047f456e"
+          src="https://sportheim-werbung.vercel.app/widget/e2820d9e-0934-4a48-abce-2e2e69216f3a"
           style={{
             width: '100%',
             height: '100%',
