@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Script from 'next/script'
 
 export default function WidgetPage() {
   const params = useParams()
@@ -39,8 +40,15 @@ export default function WidgetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: html }} />
-    </div>
+    <>
+      <div className="min-h-screen bg-white p-6">
+        <div className="max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: html }} />
+      </div>
+      
+      {/* Extrahiere fussball.de Script und lade es NACHdem HTML da ist */}
+      {html.includes('fussball.de') && (
+        <Script src="https://www.fussball.de/widgets.js" strategy="afterInteractive" />
+      )}
+    </>
   )
 }
