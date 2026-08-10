@@ -13,7 +13,7 @@ export default function SpielplanPage() {
         marginTop: '-5%',
       }}>
         <iframe
-          src="https://sportheim-werbung.vercel.app/liga1/e2820d9e-0934-4a48-abce-2e2e69216f3a"
+          src="https://www.fussball.de/spieltagsuebersicht/bezirksliga-bezirk-oberschwaben-bezirksliga-herren-saison2627-wuerttemberg/-/staffel/0319U1GHVS000006VS5489BTVSK8S3O6-G#!/"
           style={{
             width: '100%',
             height: '100%',
