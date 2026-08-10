@@ -12,8 +12,8 @@ export default function SpielplanPage() {
     width: '100%',
     height: '200%',
     border: 'none',
-    marginTop: '-400px',    // ← Statt -200px, weiter runter
-    marginLeft: '-100px',   // ← Neu, nach rechts verschieben
+    marginTop: '-550px',    // ← Statt -200px, weiter runter
+    marginLeft: '-70px',   // ← Neu, nach rechts verschieben
   }}
 />
     </div>
