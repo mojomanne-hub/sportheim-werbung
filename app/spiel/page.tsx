@@ -7,7 +7,7 @@ export default function SpielPage() {
       background: '#000',
     }}>
       <iframe
-        src="https://www.fussball.de/spiel/tsv-kirchberg-iller-fv-biberach/-/spiel/031DQTTCB4000000VS5489BUVUR5FS5A#!/"
+        src="https://www.fussball.de/spieltagsuebersicht/kreisliga-b2-bezirk-oberschwaben-k-kreisliga-b-herren-saison2627-wuerttemberg/-/staffel/031B7GLNS0000006VS5489BUVV628VP4-G#!/"
         style={{
           width: '150%',
           height: '150%',
