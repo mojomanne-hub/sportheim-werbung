@@ -9,10 +9,10 @@ export default function SpielplanPage() {
       <iframe
         src="https://sportheim-werbung.vercel.app/widget/df2f6bf0-ec97-4a69-9a6d-9efee44fac96"
         style={{
-          width: '150%',
-          height: '150%',
+          width: '100%',
+          height: '100%',
           border: 'none',
-          marginLeft: '-20%',
+          marginLeft: '-40%',
           marginTop: '-10%',
         }}
       />
