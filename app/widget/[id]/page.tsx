@@ -41,7 +41,7 @@ export default function WidgetPage() {
 
   return (
     <>
-      <div style={{ width: '100vw', height: '100vh', overflow: 'auto', background: 'white' }}>
+      <div style={{ width: '100vw', height: '200vh', overflow: 'auto', background: 'white' }}>
         <div dangerouslySetInnerHTML={{ __html: html }} style={{ pointerEvents: 'none' }} />
       </div>
       
