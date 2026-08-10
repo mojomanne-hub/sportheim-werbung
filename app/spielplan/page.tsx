@@ -9,10 +9,10 @@ export default function SpielplanPage() {
       <iframe
         src="https://www.fussball.de/spieltagsuebersicht/bezirksliga-bezirk-oberschwaben-bezirksliga-herren-saison2627-wuerttemberg/-/staffel/0319U1GHVS000006VS5489BTVSK8S3O6-G#!/"
         style={{
-          width: '200%',
-          height: '200%',
+          width: '100%',
+          height: '100%',
           border: 'none',
-          marginTop: '-200px',
+          marginTop: '-350px',
         }}
       />
     </div>
