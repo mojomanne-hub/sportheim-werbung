@@ -41,11 +41,15 @@ export default function WidgetPage() {
 
   return (
     <>
-      <html style={{ width: '100%' }}>
-        <body style={{ width: '100%', margin: 0, padding: 0, background: 'white' }}>
-          <div dangerouslySetInnerHTML={{ __html: html }} style={{ pointerEvents: 'none', width: '100%' }} />
-        </body>
-      </html>
+      <style>{`
+        header { display: none !important; }
+        nav { display: none !important; }
+        .fussballde-header { display: none !important; }
+      `}</style>
+      
+      <div style={{ background: 'white' }}>
+        <div dangerouslySetInnerHTML={{ __html: html }} style={{ pointerEvents: 'none' }} />
+      </div>
       
       {html.includes('fussball.de') && (
         <Script src="https://www.fussball.de/widgets.js" strategy="afterInteractive" />
