@@ -12,8 +12,8 @@ export default function SpielPage() {
           width: '150%',
           height: '150%',
           border: 'none',
-          marginLeft: '-40%',
-          marginTop: '-40%',
+          marginLeft: '-60%',
+          marginTop: '-80%',
         }}
       />
     </div>
