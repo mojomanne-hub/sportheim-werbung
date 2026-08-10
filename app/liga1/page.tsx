@@ -7,8 +7,8 @@ export default function SpielplanPage() {
       background: '#fff',
     }}>
       <div style={{
-        width: '-100%',
-        height: '-100%',
+        width: '5%',
+        height: '5%',
         marginLeft: '-5%',
         marginTop: '-5%',
       }}>
