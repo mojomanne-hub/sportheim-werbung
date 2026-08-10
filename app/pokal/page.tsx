@@ -12,7 +12,7 @@ export default function PokalPage() {
           width: '100%',
           height: '200%',
           border: 'none',
-          marginTop: '-200px',
+          marginTop: '-600px',
           marginLeft: '0px',
         }}
       />
