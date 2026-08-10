@@ -41,8 +41,8 @@ export default function WidgetPage() {
 
   return (
     <>
-      <div style={{ background: 'white' }}>
-        <div dangerouslySetInnerHTML={{ __html: html }} style={{ pointerEvents: 'none' }} />
+      <div style={{ background: 'white', display: 'block' }}>
+        <div dangerouslySetInnerHTML={{ __html: html }} style={{ pointerEvents: 'none', width: '100%' }} />
       </div>
       
       {html.includes('fussball.de') && (
