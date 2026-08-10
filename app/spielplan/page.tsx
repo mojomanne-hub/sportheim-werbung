@@ -7,10 +7,10 @@ export default function SpielplanPage() {
       background: '#fff',
     }}>
       <div style={{
-        width: '200%',
-        height: '200%',
-        marginLeft: '-45%',
-        marginTop: '-15%',
+        width: '120%',
+        height: '120%',
+        marginLeft: '-0%',
+        marginTop: '-5%',
       }}>
         <iframe
           src="https://sportheim-werbung.vercel.app/widget/df2f6bf0-ec97-4a69-9a6d-9efee44fac96"
