@@ -7,14 +7,15 @@ export default function SpielplanPage() {
       background: '#fff',
     }}>
       <iframe
-        src="https://www.fussball.de/spieltagsuebersicht/bezirksliga-bezirk-oberschwaben-bezirksliga-herren-saison2627-wuerttemberg/-/staffel/0319U1GHVS000006VS5489BTVSK8S3O6-G#!/"
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          marginTop: '-350px',
-        }}
-      />
+  src="https://www.fussball.de/spieltagsuebersicht/bezirksliga-bezirk-oberschwaben-bezirksliga-herren-saison2627-wuerttemberg/-/staffel/0319U1GHVS000006VS5489BTVSK8S3O6-G#!/"
+  style={{
+    width: '100%',
+    height: '200%',
+    border: 'none',
+    marginTop: '-400px',    // ← Statt -200px, weiter runter
+    marginLeft: '-100px',   // ← Neu, nach rechts verschieben
+  }}
+/>
     </div>
   )
 }
