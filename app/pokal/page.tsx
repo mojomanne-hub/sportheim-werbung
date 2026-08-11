@@ -8,7 +8,8 @@ export default function PokalPage() {
       position: 'relative',
     }}>
       <iframe
-        src="https://www.fussball.de/spieltagsuebersicht/wfv-pokal-gruppe-1-runde-1-3-herren-saison2627-wuerttemberg/-/staffel/POKALG1R1-3HERREN2627WBTVSK8S3O6-G#!/"
+     src="https://www.fussball.de/spieltag/1-runde-bezirk-oberschwaben-bezirkspokal-herren-saison2627-wuerttemberg/-/spieldatum/2026-08-11/staffel/030TM3AU50000001VS5489BUVSEBP30S-R#!/"
+
         style={{
           width: '100%',
           height: '100%',
