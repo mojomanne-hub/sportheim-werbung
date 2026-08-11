@@ -10,9 +10,9 @@ export default function PokalPage() {
         src="https://www.fussball.de/spieltag/1-runde-bezirk-oberschwaben-bezirkspokal-herren-saison2627-wuerttemberg/-/spieldatum/2026-08-11/staffel/030TM3AU50000001VS5489BUVSEBP30S-R#!/"
         style={{
           width: '110%',
-          height: '800%',
+          height: '750%',
           border: 'none',
-          marginTop: '-1350px',
+          marginTop: '-1300px',
           marginLeft: '-15px',
         }}
       />
