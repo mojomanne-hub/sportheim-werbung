@@ -3,16 +3,16 @@ export default function PokalPage() {
     <div style={{
       width: '100vw',
       height: '100vh',
-      overflow: 'hidden',  // ← Wichtig! Schneidet alles ab was übersteht
+      overflow: 'hidden',
       background: '#fff',
     }}>
       <iframe
-        src="https://www.fussball.de/spieltagsuebersicht/wfv-pokal-gruppe-1-runde-1-3-herren-saison2627-wuerttemberg/-/staffel/POKALG1R1-3HERREN2627WBTVSK8S3O6-G#!/"
+        src="https://www.fussball.de/spieltag/1-runde-bezirk-oberschwaben-bezirkspokal-herren-saison2627-wuerttemberg/-/spieldatum/2026-08-11/staffel/030TM3AU50000001VS5489BUVSEBP30S-R#!/"
         style={{
-          width: '120%',      // ← Exotischer: 120% statt 100/200
-          height: '220%',     // ← Exotischer: 140% statt 200
+          width: '120%',
+          height: '220%',
           border: 'none',
-          marginTop: '-1200px',
+          marginTop: '-1100px',
           marginLeft: '0px',
         }}
       />
