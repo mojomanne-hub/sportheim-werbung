@@ -12,8 +12,8 @@ export default function PokalPage() {
           width: '120%',
           height: '500%',
           border: 'none',
-          marginTop: '-1150px',
-          marginLeft: '0px',
+          marginTop: '-1200px',
+          marginLeft: '-5px',
         }}
       />
     </div>
