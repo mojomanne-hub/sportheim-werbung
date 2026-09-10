@@ -54,8 +54,6 @@ export default function AdminPage() {
         supabase.from('gallery_visits').select('*', { count: 'exact', head: true }).gte('visited_at', monthAgo),
       ])
 
-      if (totalRes.error) console.error('Fehler beim Laden der Besucherzahlen:', totalRes.error)
-
       setVisitStats({
         total: totalRes.count ?? 0,
         week: weekRes.count ?? 0,
@@ -74,9 +72,7 @@ export default function AdminPage() {
       .from('werbeanzeigen-media')
       .upload(fileName, file)
 
-    if (uploadError) {
-      throw new Error(uploadError.message)
-    }
+    if (uploadError) throw new Error(uploadError.message)
 
     const { data: urlData } = supabase.storage
       .from('werbeanzeigen-media')
@@ -93,9 +89,7 @@ export default function AdminPage() {
       active: true,
     })
 
-    if (insertError) {
-      throw new Error(insertError.message)
-    }
+    if (insertError) throw new Error(insertError.message)
   }
 
   const addWidget = async (title: string, code: string, seconds: number) => {
@@ -151,20 +145,10 @@ export default function AdminPage() {
     }
   }
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDraggingFiles(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDraggingFiles(false)
-  }
-
   const toggleActive = async (ad: Ad) => {
     const { error } = await supabase.from('werbeanzeigen').update({ active: !ad.active }).eq('id', ad.id)
     if (error) {
-      alert('Fehler beim Ändern: ' + error.message)
+      alert('Fehler: ' + error.message)
       return
     }
     fetchAds()
@@ -179,7 +163,7 @@ export default function AdminPage() {
     if (!confirm(`"${ad.title}" wirklich löschen?`)) return
     const { error } = await supabase.from('werbeanzeigen').delete().eq('id', ad.id)
     if (error) {
-      alert('Fehler beim Löschen: ' + error.message)
+      alert('Fehler: ' + error.message)
       return
     }
     fetchAds()
@@ -187,20 +171,12 @@ export default function AdminPage() {
 
   const persistReorder = async (reordered: Ad[]) => {
     setAds(reordered)
-    const results = await Promise.all(
+    await Promise.all(
       reordered.map((ad, i) =>
         supabase.from('werbeanzeigen').update({ sort_order: i + 1 }).eq('id', ad.id)
       )
     )
-    const failed = results.find((r) => r.error)
-    if (failed?.error) {
-      alert('Fehler beim Speichern der Reihenfolge: ' + failed.error.message)
-    }
     fetchAds()
-  }
-
-  const handleHandleMouseDown = (index: number) => {
-    setDraggableIndex(index)
   }
 
   const handleItemDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
@@ -222,47 +198,6 @@ export default function AdminPage() {
     setDraggableIndex(null)
 
     if (Number.isNaN(fromIndex) || fromIndex === toIndex) return
-
-    const reordered = [...ads]
-    const [moved] = reordered.splice(fromIndex, 1)
-    reordered.splice(toIndex, 0, moved)
-
-    await persistReorder(reordered)
-  }
-
-  const handleItemDragEnd = () => {
-    setDragOverIndex(null)
-    setDraggableIndex(null)
-  }
-
-  const handleTouchStart = (index: number) => {
-    setTouchDraggingIndex(index)
-    setDragOverIndex(index)
-  }
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLSpanElement>) => {
-    if (touchDraggingIndex === null) return
-    const touchY = e.touches[0].clientY
-
-    for (let i = 0; i < itemRefs.current.length; i++) {
-      const el = itemRefs.current[i]
-      if (!el) continue
-      const rect = el.getBoundingClientRect()
-      if (touchY >= rect.top && touchY <= rect.bottom) {
-        setDragOverIndex(i)
-        break
-      }
-    }
-  }
-
-  const handleTouchEnd = async () => {
-    const fromIndex = touchDraggingIndex
-    const toIndex = dragOverIndex
-
-    setTouchDraggingIndex(null)
-    setDragOverIndex(null)
-
-    if (fromIndex === null || toIndex === null || fromIndex === toIndex) return
 
     const reordered = [...ads]
     const [moved] = reordered.splice(fromIndex, 1)
@@ -320,14 +255,14 @@ export default function AdminPage() {
 
         <div
           onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          onDragOver={(e) => { e.preventDefault(); setIsDraggingFiles(true) }}
+          onDragLeave={(e) => { e.preventDefault(); setIsDraggingFiles(false) }}
           className={`bg-[#161c2c] border-2 border-dashed rounded-xl p-8 mb-6 text-center transition ${
             isDraggingFiles ? 'border-blue-500 bg-blue-500/5' : 'border-gray-700'
           }`}
         >
           <p className="text-gray-300 font-medium mb-1">Bilder/Videos hierher ziehen</p>
-          <p className="text-gray-500 text-sm mb-4">oder klicken, um Dateien auszuwählen (mehrere möglich)</p>
+          <p className="text-gray-500 text-sm mb-4">oder klicken, um Dateien auszuwählen</p>
 
           <label className="inline-block bg-blue-600 hover:bg-blue-500 transition text-white px-4 py-2 rounded-lg font-medium cursor-pointer">
             Dateien auswählen
@@ -341,130 +276,94 @@ export default function AdminPage() {
           </label>
 
           {uploading && uploadProgress && (
-            <p className="text-blue-400 text-sm mt-4">
-              Lädt hoch... {uploadProgress.done}/{uploadProgress.total}
-            </p>
+            <p className="text-blue-400 text-sm mt-4">Lädt: {uploadProgress.done}/{uploadProgress.total}</p>
           )}
-
-          <p className="text-gray-600 text-xs mt-4">
-            Titel wird automatisch aus dem Dateinamen übernommen, Anzeigedauer Standard 7s – beides danach in der Liste anpassbar.
-          </p>
         </div>
 
-      <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5 mb-6">
-  <h2 className="font-semibold text-white mb-1">Baustein hinzufügen</h2>
-  <p className="text-gray-500 text-xs mb-4">
-    Für Widgets, Links (Spiele, Tabellen), etc.
-  </p>
-  <div className="space-y-3">
-    <input
-      type="text"
-      placeholder="Titel (z.B. 'Spiel gegen Bad Schussenried')"
-      value={widgetTitle}
-      onChange={(e) => setWidgetTitle(e.target.value)}
-      className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-    />
-    <textarea
-      placeholder="Einbettungscode ODER Link-URL (z.B. https://...)"
-      value={widgetCode}
-      onChange={(e) => setWidgetCode(e.target.value)}
-      rows={4}
-      className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-xs"
-    />
-    <input
-      type="number"
-      placeholder="Anzeigedauer in Sekunden"
-      value={widgetSeconds}
-      onChange={(e) => setWidgetSeconds(Number(e.target.value))}
-      className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-    />
-    <button
-      onClick={async () => {
-        if (!widgetTitle || !widgetCode) {
-          alert('Bitte Titel und Code/Link angeben')
-          return
-        }
-        
-        // Wenn es ein Link ist (mit http/https), wrappen wir ihn in einen iframe-Code
-        let finalCode = widgetCode
-        if (widgetCode.startsWith('http')) {
-          finalCode = `<iframe src="${widgetCode}" width="100%" height="100%" frameborder="0" style="border: none; width: 100vw; height: 100vh;"></iframe>`
-        }
-        
-        setSavingWidget(true)
-        const ok = await addWidget(widgetTitle, finalCode, widgetSeconds)
-        if (ok) {
-          setWidgetTitle('')
-          setWidgetCode('')
-          setWidgetSeconds(15)
-        }
-        setSavingWidget(false)
-      }}
-      disabled={savingWidget}
-      className="bg-purple-600 hover:bg-purple-500 transition text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 w-full"
-    >
-      {savingWidget ? 'Speichert...' : 'Baustein hinzufügen'}
-    </button>
-  </div>
-</div>
+        <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-5 mb-6">
+          <h2 className="font-semibold text-white mb-1">Baustein hinzufügen</h2>
+          <p className="text-gray-500 text-xs mb-4">Für Widgets, Spieltag, 2. Mannschaft etc.</p>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Titel"
+              value={widgetTitle}
+              onChange={(e) => setWidgetTitle(e.target.value)}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            <textarea
+              placeholder="Einbettungscode"
+              value={widgetCode}
+              onChange={(e) => setWidgetCode(e.target.value)}
+              rows={4}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-xs"
+            />
+            <input
+              type="number"
+              placeholder="Sekunden"
+              value={widgetSeconds}
+              onChange={(e) => setWidgetSeconds(Number(e.target.value))}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-3 py-2 w-full text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            <button
+              onClick={async () => {
+                if (!widgetTitle || !widgetCode) {
+                  alert('Titel und Code erforderlich')
+                  return
+                }
+                setSavingWidget(true)
+                const ok = await addWidget(widgetTitle, widgetCode, widgetSeconds)
+                if (ok) {
+                  setWidgetTitle('')
+                  setWidgetCode('')
+                  setWidgetSeconds(15)
+                }
+                setSavingWidget(false)
+              }}
+              disabled={savingWidget}
+              className="bg-purple-600 hover:bg-purple-500 transition text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 w-full"
+            >
+              {savingWidget ? 'Speichert...' : 'Baustein hinzufügen'}
+            </button>
+          </div>
+        </div>
 
         <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-2 sm:p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-white">Vorhandene Werbungen & Bausteine</h2>
-            <span className="text-sm text-gray-500">{ads.length} gesamt · am Griff ⠿ ziehen zum Sortieren</span>
-          </div>
+          <h2 className="font-semibold text-white mb-4">Vorhandene Werbungen</h2>
 
-          {ads.length === 0 && <p className="text-gray-500 text-sm">Noch keine Werbung oder Bausteine hinzugefügt.</p>}
+          {ads.length === 0 && <p className="text-gray-500 text-sm">Keine Werbungen hinzugefügt.</p>}
 
           <div className="space-y-2">
             {ads.map((ad, index) => (
               <div
                 key={ad.id}
-                ref={(el) => {
-                  itemRefs.current[index] = el
-                }}
-                draggable={draggableIndex === index}
+                ref={(el) => { itemRefs.current[index] = el }}
+                draggable
                 onDragStart={(e) => handleItemDragStart(e, index)}
                 onDragOver={(e) => handleItemDragOver(e, index)}
                 onDrop={(e) => handleItemDrop(e, index)}
-                onDragEnd={handleItemDragEnd}
                 className={`border rounded-lg p-2 flex flex-wrap items-center gap-2 transition ${
                   dragOverIndex === index ? 'border-blue-500 bg-blue-500/5' : 'border-gray-800 bg-[#0d1220]'
                 }`}
               >
-                <span
-                  onMouseDown={() => handleHandleMouseDown(index)}
-                  onTouchStart={() => handleTouchStart(index)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  style={{ touchAction: 'none' }}
-                  className="text-gray-500 select-none cursor-move text-xl px-2 py-1"
-                  title="Ziehen zum Sortieren"
-                >
-                  ⠿
-                </span>
+                <span className="text-gray-500 select-none cursor-move text-xl px-2">⠿</span>
                 
                 {ad.file_type === 'image' ? (
                   <button
                     onClick={() => setSelectedImageUrl(ad.file_url)}
-                    className="w-14 h-14 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition flex-shrink-0"
-                    title="Klick für Vorschau"
+                    className="w-14 h-14 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 flex-shrink-0"
                   >
                     <img src={ad.file_url ?? ''} className="w-full h-full object-cover" alt={ad.title} />
                   </button>
                 ) : ad.file_type === 'video' ? (
                   <video src={ad.file_url ?? ''} className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
                 ) : (
-                  <div className="w-14 h-14 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">
-                    ◫
-                  </div>
+                  <div className="w-14 h-14 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">◫</div>
                 )}
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-100 truncate">{ad.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {ad.file_type === 'video' ? 'Video (volle Länge)' : `${ad.display_seconds}s`}
-                  </p>
+                  <p className="text-xs text-gray-500">{ad.file_type === 'video' ? 'Video' : `${ad.display_seconds}s`}</p>
                 </div>
                 
                 {ad.file_type !== 'video' && (
@@ -487,16 +386,9 @@ export default function AdminPage() {
                 
                 <button
                   onClick={() => deleteAd(ad)}
-                  aria-label="Löschen"
                   className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 flex-shrink-0"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                    <line x1="10" y1="11" x2="10" y2="17" />
-                    <line x1="14" y1="11" x2="14" y2="17" />
-                  </svg>
+                  🗑️
                 </button>
               </div>
             ))}
@@ -504,30 +396,17 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Bild-Vorschau Modal */}
       {selectedImageUrl && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
           onClick={() => setSelectedImageUrl(null)}
         >
-          <div
-            className="bg-[#161c2c] rounded-xl border border-gray-700 p-4 max-w-2xl w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="bg-[#161c2c] rounded-xl border border-gray-700 p-4 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">Bild-Vorschau</h3>
-              <button
-                onClick={() => setSelectedImageUrl(null)}
-                className="text-gray-400 hover:text-gray-200 text-2xl"
-              >
-                ×
-              </button>
+              <h3 className="text-lg font-semibold text-white">Vorschau</h3>
+              <button onClick={() => setSelectedImageUrl(null)} className="text-gray-400 hover:text-gray-200 text-2xl">×</button>
             </div>
-            <img
-              src={selectedImageUrl}
-              alt="Vorschau"
-              className="w-full rounded-lg object-contain max-h-96"
-            />
+            <img src={selectedImageUrl} alt="Vorschau" className="w-full rounded-lg object-contain max-h-96" />
           </div>
         </div>
       )}
