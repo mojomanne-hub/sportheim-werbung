@@ -10,14 +10,49 @@ type Ad = {
   file_type: 'image' | 'video' | 'widget'
 }
 
+type Theme = 'dark' | 'light'
+
+const palette = {
+  dark: {
+    page: 'bg-[#0d1220] text-gray-100',
+    card: 'bg-[#161c2c] border-gray-800',
+    viewer: 'bg-[#161c2c]',
+    media: 'bg-black',
+    muted: 'text-gray-400',
+    dot: 'bg-gray-600',
+  },
+  light: {
+    page: 'bg-gray-50 text-gray-900',
+    card: 'bg-white border-gray-200',
+    viewer: 'bg-white',
+    media: 'bg-gray-100',
+    muted: 'text-gray-500',
+    dot: 'bg-gray-300',
+  },
+}
+
 export default function GalleryPage() {
   const [ads, setAds] = useState<Ad[]>([])
   const [loading, setLoading] = useState(true)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
+  const [theme, setTheme] = useState<Theme>('dark')
   const touchStartX = useRef<number | null>(null)
   const viewerRef = useRef<HTMLDivElement | null>(null)
+
+  const p = palette[theme]
+
+  useEffect(() => {
+    const saved = localStorage.getItem('gallery-theme')
+    if (saved === 'light' || saved === 'dark') setTheme(saved)
+  }, [])
+
+  const toggleTheme = () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    localStorage.setItem('gallery-theme', next)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -83,35 +118,42 @@ export default function GalleryPage() {
   const current = openIndex !== null ? ads[currentIndex] : null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen transition-colors ${p.page}`}>
       <header className="bg-gradient-to-r from-[#1e4a8c] to-[#2f6cc4] text-white">
-        <div className="max-w-5xl mx-auto px-6 py-8 flex items-center gap-5">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex items-center gap-5">
           <img
             src="/wappen.png"
             alt="TSV Kirchberg 1921"
             className="w-20 h-20 object-contain bg-white rounded-full p-2 shadow-lg"
           />
-          <div>
+          <div className="flex-1">
             <p className="text-sm uppercase tracking-widest text-blue-100">TSV Kirchberg 1921</p>
             <h1 className="text-2xl md:text-3xl font-bold">Unsere Partner</h1>
             <p className="text-blue-100 text-sm mt-1">Danke an alle, die unseren Verein unterstützen</p>
           </div>
+          <button
+            onClick={toggleTheme}
+            className="px-3 py-2 rounded-full bg-white/15 hover:bg-white/25 text-sm font-medium"
+            aria-label="Farbschema wechseln"
+          >
+            {theme === 'dark' ? '☀️ Hell' : '🌙 Dunkel'}
+          </button>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        {loading && <p className="text-center text-gray-500">Lädt...</p>}
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        {loading && <p className={`text-center ${p.muted}`}>Lädt...</p>}
 
         {!loading && ads.length === 0 && (
-          <p className="text-center text-gray-500">Noch keine Werbung vorhanden.</p>
+          <p className={`text-center ${p.muted}`}>Noch keine Werbung vorhanden.</p>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {ads.map((ad, index) => (
             <button
               key={ad.id}
               onClick={() => openAt(index)}
-              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all border border-gray-200"
+              className={`group rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all border ${p.card}`}
             >
               <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
                 {ad.file_type === 'video' ? (
@@ -137,10 +179,10 @@ export default function GalleryPage() {
         >
           <div
             ref={viewerRef}
-            className={`relative bg-white overflow-hidden flex flex-col ${
+            className={`relative overflow-hidden flex flex-col ${p.viewer} ${
               fullscreen
                 ? 'w-screen h-screen rounded-none'
-                : 'w-full max-w-sm max-h-[92vh] rounded-2xl'
+                : 'w-full max-w-md md:max-w-xl max-h-[92vh] rounded-2xl'
             }`}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={onTouchStart}
@@ -154,18 +196,18 @@ export default function GalleryPage() {
               ×
             </button>
 
-            <div className="flex justify-center gap-2 pt-3 pb-2 bg-white">
+            <div className="flex justify-center gap-2 pt-3 pb-2">
               {ads.map((_, i) => (
                 <span
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i === currentIndex ? 'bg-[#1e4a8c]' : 'bg-gray-300'
+                    i === currentIndex ? 'bg-[#1e4a8c]' : p.dot
                   }`}
                 />
               ))}
             </div>
 
-            <div className="flex-1 min-h-0 bg-gray-100 flex items-center justify-center">
+            <div className={`flex-1 min-h-0 flex items-center justify-center ${p.media}`}>
               {current.file_type === 'video' ? (
                 <video
                   key={current.id}
@@ -183,8 +225,8 @@ export default function GalleryPage() {
               )}
             </div>
 
-            <div className="px-4 py-2 flex items-center justify-between bg-white">
-              <p className="text-xs text-gray-400">
+            <div className="px-4 py-2 flex items-center justify-between">
+              <p className={`text-xs ${p.muted}`}>
                 {currentIndex + 1} / {ads.length} · wischen zum Blättern
               </p>
               <button
