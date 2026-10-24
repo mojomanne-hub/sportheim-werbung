@@ -103,6 +103,18 @@ export default function GalleryPage() {
   const next = () => setCurrentIndex((i) => Math.min(i + 1, ads.length - 1))
   const prev = () => setCurrentIndex((i) => Math.max(i - 1, 0))
 
+  // Tastatur: Pfeiltasten zum Blättern, Escape zum Schließen
+  useEffect(() => {
+    if (openIndex === null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') next()
+      else if (e.key === 'ArrowLeft') prev()
+      else if (e.key === 'Escape') close()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX
   }
@@ -207,7 +219,7 @@ export default function GalleryPage() {
               ))}
             </div>
 
-            <div className={`flex-1 min-h-0 flex items-center justify-center ${p.media}`}>
+            <div className={`relative flex-1 min-h-0 flex items-center justify-center ${p.media}`}>
               {current.file_type === 'video' ? (
                 <video
                   key={current.id}
@@ -223,11 +235,31 @@ export default function GalleryPage() {
                   className="max-w-full max-h-full object-contain"
                 />
               )}
+
+              {/* Pfeile links/rechts – nur Desktop */}
+              {currentIndex > 0 && (
+                <button
+                  onClick={prev}
+                  className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 text-white text-xl items-center justify-center hover:bg-black/80"
+                  aria-label="Zurück"
+                >
+                  ‹
+                </button>
+              )}
+              {currentIndex < ads.length - 1 && (
+                <button
+                  onClick={next}
+                  className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 text-white text-xl items-center justify-center hover:bg-black/80"
+                  aria-label="Weiter"
+                >
+                  ›
+                </button>
+              )}
             </div>
 
             <div className="px-4 py-2 flex items-center justify-between">
               <p className={`text-xs ${p.muted}`}>
-                {currentIndex + 1} / {ads.length} · wischen zum Blättern
+                {currentIndex + 1} / {ads.length} · wischen oder Pfeiltasten
               </p>
               <button
                 onClick={toggleFullscreen}
