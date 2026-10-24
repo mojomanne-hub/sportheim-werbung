@@ -1,111 +1,117 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type Ad = {
   id: string
   title: string
-  file_url: string
-  file_type: 'image' | 'video'
-  sort_order: number
-  active: boolean
+  file_url: string | null
+  file_type: 'image' | 'video' | 'widget'
 }
 
 export default function GalleryPage() {
   const [ads, setAds] = useState<Ad[]>([])
-  const [index, setIndex] = useState(0)
-  const touchStartX = useRef<number | null>(null)
+  const [selected, setSelected] = useState<Ad | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const fetchAds = useCallback(async () => {
-    const { data } = await supabase
-      .from('werbeanzeigen')
-      .select('*')
-      .eq('active', true)
-      .order('sort_order', { ascending: true })
-    if (data) setAds(data)
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('werbeanzeigen')
+        .select('id, title, file_url, file_type')
+        .eq('active', true)
+        .neq('file_type', 'widget')
+        .order('sort_order', { ascending: true })
+
+      if (data) setAds(data as Ad[])
+      setLoading(false)
+
+      // Besuch protokollieren
+      await supabase.from('gallery_visits').insert({})
+    }
+    load()
   }, [])
 
- useEffect(() => {
-  fetchAds()
-}, [fetchAds])
-
-useEffect(() => {
-  supabase.from('gallery_visits').insert({}).then(({ error }) => {
-    if (error) console.error('Tracking-Fehler:', error)
-  })
-}, [])
-  const goNext = () => {
-    setIndex((prev) => (prev + 1) % ads.length)
-  }
-
-  const goPrev = () => {
-    setIndex((prev) => (prev - 1 + ads.length) % ads.length)
-  }
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX
-  }
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return
-    const diff = e.changedTouches[0].clientX - touchStartX.current
-    if (Math.abs(diff) > 50) {
-      if (diff < 0) goNext()
-      else goPrev()
-    }
-    touchStartX.current = null
-  }
-
-  if (ads.length === 0) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white text-lg p-6 text-center">
-        Aktuell keine Werbung verfügbar
-      </div>
-    )
-  }
-
-  const current = ads[index]
-
   return (
-    <div
-      className="min-h-screen bg-black flex flex-col"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      <div className="flex-1 flex items-center justify-center relative">
-        {current.file_type === 'image' ? (
+    <div className="min-h-screen bg-gray-50">
+      {/* Banner mit Vereinsfarben */}
+      <header className="bg-gradient-to-r from-[#1e4a8c] to-[#2f6cc4] text-white">
+        <div className="max-w-5xl mx-auto px-6 py-8 flex items-center gap-5">
           <img
-            src={current.file_url}
-            alt={current.title}
-            className="max-w-full max-h-full object-contain"
+            src="/wappen.png"
+            alt="TSV Kirchberg 1921"
+            className="w-20 h-20 object-contain bg-white rounded-full p-2 shadow-lg"
           />
-        ) : (
-          <video
-            key={current.id}
-            src={current.file_url}
-            controls
-            autoPlay
-            className="max-w-full max-h-full object-contain"
-          />
-        )}
-
-        {current.file_type === 'image' && (
-          <>
-            <button onClick={goPrev} aria-label="Vorheriges Bild" className="absolute left-0 top-0 h-full w-1/3" />
-            <button onClick={goNext} aria-label="Nächstes Bild" className="absolute right-0 top-0 h-full w-1/3" />
-          </>
-        )}
-      </div>
-
-      <div className="bg-[#0d1220] px-4 py-3 flex items-center justify-between">
-        <button onClick={goPrev} className="text-white text-2xl px-4 py-2" aria-label="Zurück">‹</button>
-        <div className="text-center">
-          <p className="text-white text-sm font-medium truncate max-w-[60vw]">{current.title}</p>
-          <p className="text-gray-500 text-xs">{index + 1} / {ads.length}</p>
+          <div>
+            <p className="text-sm uppercase tracking-widest text-blue-100">TSV Kirchberg 1921</p>
+            <h1 className="text-2xl md:text-3xl font-bold">Unsere Partner</h1>
+            <p className="text-blue-100 text-sm mt-1">Danke an alle, die unseren Verein unterstützen</p>
+          </div>
         </div>
-        <button onClick={goNext} className="text-white text-2xl px-4 py-2" aria-label="Weiter">›</button>
-      </div>
+      </header>
+
+      {/* Kachel-Raster */}
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {loading && <p className="text-center text-gray-500">Lädt...</p>}
+
+        {!loading && ads.length === 0 && (
+          <p className="text-center text-gray-500">Noch keine Werbung vorhanden.</p>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {ads.map((ad) => (
+            <button
+              key={ad.id}
+              onClick={() => setSelected(ad)}
+              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all border border-gray-200 text-left"
+            >
+              <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
+                {ad.file_type === 'video' ? (
+                  <video src={ad.file_url ?? ''} className="w-full h-full object-cover" muted />
+                ) : (
+                  <img
+                    src={ad.file_url ?? ''}
+                    alt={ad.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                )}
+              </div>
+              <div className="px-3 py-2 border-t-4 border-[#1e4a8c]">
+                <p className="text-sm font-semibold text-gray-800 truncate">{ad.title}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </main>
+
+      {/* Vollbild-Ansicht */}
+      {selected && (
+        <div
+          className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50"
+          onClick={() => setSelected(null)}
+        >
+          <div className="relative max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute -top-10 right-0 text-white text-3xl hover:text-blue-300"
+              aria-label="Schließen"
+            >
+              ×
+            </button>
+            {selected.file_type === 'video' ? (
+              <video src={selected.file_url ?? ''} controls autoPlay className="w-full rounded-xl" />
+            ) : (
+              <img src={selected.file_url ?? ''} alt={selected.title} className="w-full rounded-xl object-contain max-h-[85vh]" />
+            )}
+            <p className="text-center text-white mt-3 font-medium">{selected.title}</p>
+          </div>
+        </div>
+      )}
+
+      <footer className="text-center text-xs text-gray-400 pb-8">
+        Sportheim TSV Kirchberg 1921
+      </footer>
     </div>
   )
 }

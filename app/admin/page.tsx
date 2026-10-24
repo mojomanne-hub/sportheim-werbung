@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [widgetTitle, setWidgetTitle] = useState('')
   const [widgetCode, setWidgetCode] = useState('')
   const [widgetSeconds, setWidgetSeconds] = useState(15)
+  const [uploadSeconds, setUploadSeconds] = useState(7)
   const [savingWidget, setSavingWidget] = useState(false)
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -63,7 +64,7 @@ export default function AdminPage() {
     fetchVisits()
   }, [])
 
-  const uploadSingleFile = async (file: File, sortOrder: number) => {
+  const uploadSingleFile = async (file: File, sortOrder: number, seconds: number) => {
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
     const fileType: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image'
@@ -84,7 +85,7 @@ export default function AdminPage() {
       title: derivedTitle,
       file_url: urlData.publicUrl,
       file_type: fileType,
-      display_seconds: 7,
+      display_seconds: seconds,
       sort_order: sortOrder,
       active: true,
     })
@@ -125,7 +126,7 @@ export default function AdminPage() {
     for (let i = 0; i < files.length; i++) {
       try {
         maxOrder += 1
-        await uploadSingleFile(files[i], maxOrder)
+        await uploadSingleFile(files[i], maxOrder, uploadSeconds)
         setUploadProgress({ done: i + 1, total: files.length })
       } catch (err: any) {
         alert(`Fehler bei "${files[i].name}": ${err.message}`)
@@ -274,6 +275,17 @@ export default function AdminPage() {
               onChange={(e) => e.target.files && handleFiles(e.target.files)}
             />
           </label>
+
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <label className="text-sm text-gray-400">Anzeigedauer:</label>
+            <input
+              type="number"
+              value={uploadSeconds}
+              onChange={(e) => setUploadSeconds(Number(e.target.value))}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg w-16 px-2 py-1 text-sm text-gray-100"
+            />
+            <span className="text-sm text-gray-400">Sek.</span>
+          </div>
 
           {uploading && uploadProgress && (
             <p className="text-blue-400 text-sm mt-4">Lädt: {uploadProgress.done}/{uploadProgress.total}</p>
