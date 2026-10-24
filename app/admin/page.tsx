@@ -64,6 +64,16 @@ export default function AdminPage() {
     fetchVisits()
   }, [])
 
+  // Platz oben schaffen: alle bestehenden Einträge um `count` nach hinten schieben
+  const makeRoomAtTop = async (count: number) => {
+    const shifted = ads.map((a) => ({ id: a.id, sort_order: a.sort_order + count }))
+    await Promise.all(
+      shifted.map((s) =>
+        supabase.from('werbeanzeigen').update({ sort_order: s.sort_order }).eq('id', s.id)
+      )
+    )
+  }
+
   const uploadSingleFile = async (file: File, sortOrder: number, seconds: number) => {
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
@@ -94,7 +104,7 @@ export default function AdminPage() {
   }
 
   const addWidget = async (title: string, code: string, seconds: number) => {
-    const maxOrder = ads.length > 0 ? Math.max(...ads.map((a) => a.sort_order)) : 0
+    await makeRoomAtTop(1)
 
     const { error } = await supabase.from('werbeanzeigen').insert({
       title,
@@ -102,7 +112,7 @@ export default function AdminPage() {
       file_type: 'widget',
       widget_code: code,
       display_seconds: seconds,
-      sort_order: maxOrder + 1,
+      sort_order: 1,
       active: true,
     })
 
@@ -121,12 +131,12 @@ export default function AdminPage() {
     setUploading(true)
     setUploadProgress({ done: 0, total: files.length })
 
-    let maxOrder = ads.length > 0 ? Math.max(...ads.map((a) => a.sort_order)) : 0
+    // Neue Dateien kommen oben rein, in Upload-Reihenfolge
+    await makeRoomAtTop(files.length)
 
     for (let i = 0; i < files.length; i++) {
       try {
-        maxOrder += 1
-        await uploadSingleFile(files[i], maxOrder, uploadSeconds)
+        await uploadSingleFile(files[i], i + 1, uploadSeconds)
         setUploadProgress({ done: i + 1, total: files.length })
       } catch (err: any) {
         alert(`Fehler bei "${files[i].name}": ${err.message}`)
@@ -144,6 +154,16 @@ export default function AdminPage() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files)
     }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDraggingFiles(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDraggingFiles(false)
   }
 
   const toggleActive = async (ad: Ad) => {
@@ -207,6 +227,47 @@ export default function AdminPage() {
     await persistReorder(reordered)
   }
 
+  const handleItemDragEnd = () => {
+    setDragOverIndex(null)
+    setDraggableIndex(null)
+  }
+
+  const handleTouchStart = (index: number) => {
+    setTouchDraggingIndex(index)
+    setDragOverIndex(index)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLSpanElement>) => {
+    if (touchDraggingIndex === null) return
+    const touchY = e.touches[0].clientY
+
+    for (let i = 0; i < itemRefs.current.length; i++) {
+      const el = itemRefs.current[i]
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      if (touchY >= rect.top && touchY <= rect.bottom) {
+        setDragOverIndex(i)
+        break
+      }
+    }
+  }
+
+  const handleTouchEnd = async () => {
+    const fromIndex = touchDraggingIndex
+    const toIndex = dragOverIndex
+
+    setTouchDraggingIndex(null)
+    setDragOverIndex(null)
+
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) return
+
+    const reordered = [...ads]
+    const [moved] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, moved)
+
+    await persistReorder(reordered)
+  }
+
   const activeCount = ads.filter((a) => a.active).length
 
   return (
@@ -256,8 +317,8 @@ export default function AdminPage() {
 
         <div
           onDrop={handleDrop}
-          onDragOver={(e) => { e.preventDefault(); setIsDraggingFiles(true) }}
-          onDragLeave={(e) => { e.preventDefault(); setIsDraggingFiles(false) }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
           className={`bg-[#161c2c] border-2 border-dashed rounded-xl p-8 mb-6 text-center transition ${
             isDraggingFiles ? 'border-blue-500 bg-blue-500/5' : 'border-gray-700'
           }`}
@@ -341,7 +402,10 @@ export default function AdminPage() {
         </div>
 
         <div className="bg-[#161c2c] border border-gray-800 rounded-xl p-2 sm:p-5">
-          <h2 className="font-semibold text-white mb-4">Vorhandene Werbungen</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-white">Vorhandene Werbungen</h2>
+            <span className="text-sm text-gray-500">{ads.length} gesamt · am Griff ⠿ ziehen zum Sortieren</span>
+          </div>
 
           {ads.length === 0 && <p className="text-gray-500 text-sm">Keine Werbungen hinzugefügt.</p>}
 
@@ -350,20 +414,32 @@ export default function AdminPage() {
               <div
                 key={ad.id}
                 ref={(el) => { itemRefs.current[index] = el }}
-                draggable
+                draggable={draggableIndex === index}
                 onDragStart={(e) => handleItemDragStart(e, index)}
                 onDragOver={(e) => handleItemDragOver(e, index)}
                 onDrop={(e) => handleItemDrop(e, index)}
+                onDragEnd={handleItemDragEnd}
                 className={`border rounded-lg p-2 flex flex-wrap items-center gap-2 transition ${
                   dragOverIndex === index ? 'border-blue-500 bg-blue-500/5' : 'border-gray-800 bg-[#0d1220]'
                 }`}
               >
-                <span className="text-gray-500 select-none cursor-move text-xl px-2">⠿</span>
-                
+                <span
+                  onMouseDown={() => setDraggableIndex(index)}
+                  onTouchStart={() => handleTouchStart(index)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  style={{ touchAction: 'none' }}
+                  className="text-gray-500 select-none cursor-move text-xl px-2 py-1"
+                  title="Ziehen zum Sortieren"
+                >
+                  ⠿
+                </span>
+
                 {ad.file_type === 'image' ? (
                   <button
                     onClick={() => setSelectedImageUrl(ad.file_url)}
                     className="w-14 h-14 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 flex-shrink-0"
+                    title="Klick für Vorschau"
                   >
                     <img src={ad.file_url ?? ''} className="w-full h-full object-cover" alt={ad.title} />
                   </button>
@@ -372,12 +448,14 @@ export default function AdminPage() {
                 ) : (
                   <div className="w-14 h-14 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">◫</div>
                 )}
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-100 truncate">{ad.title}</p>
-                  <p className="text-xs text-gray-500">{ad.file_type === 'video' ? 'Video' : `${ad.display_seconds}s`}</p>
+                  <p className="text-xs text-gray-500">
+                    {ad.file_type === 'video' ? 'Video (volle Länge)' : `${ad.display_seconds}s`}
+                  </p>
                 </div>
-                
+
                 {ad.file_type !== 'video' && (
                   <input
                     type="number"
@@ -386,7 +464,7 @@ export default function AdminPage() {
                     className="bg-[#161c2c] border border-gray-700 rounded-lg w-12 px-1 py-1 text-sm text-gray-100"
                   />
                 )}
-                
+
                 <button
                   onClick={() => toggleActive(ad)}
                   className={`px-2 py-1 rounded-lg text-sm font-medium ${
@@ -395,9 +473,10 @@ export default function AdminPage() {
                 >
                   {ad.active ? 'Aktiv' : 'Inaktiv'}
                 </button>
-                
+
                 <button
                   onClick={() => deleteAd(ad)}
+                  aria-label="Löschen"
                   className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 flex-shrink-0"
                 >
                   🗑️
