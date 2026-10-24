@@ -86,7 +86,7 @@ export default function GalleryPage() {
             <button
               key={ad.id}
               onClick={() => openAt(index)}
-              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all border border-gray-200 text-left"
+              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all border border-gray-200"
             >
               <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
                 {ad.file_type === 'video' ? (
@@ -94,14 +94,12 @@ export default function GalleryPage() {
                 ) : (
                   <img
                     src={ad.file_url ?? ''}
-                    alt={ad.title}
+                    alt=""
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 )}
               </div>
-              <div className="px-3 py-2 border-t-4 border-[#1e4a8c]">
-                <p className="text-sm font-semibold text-gray-800 truncate">{ad.title}</p>
-              </div>
+              <div className="h-1 bg-[#1e4a8c]" />
             </button>
           ))}
         </div>
@@ -126,7 +124,6 @@ export default function GalleryPage() {
               ×
             </button>
 
-            {/* Punkte oben, immer sichtbar */}
             <div className="flex justify-center gap-2 pt-3 pb-2 bg-white">
               {ads.map((_, i) => (
                 <span
@@ -150,14 +147,13 @@ export default function GalleryPage() {
               ) : (
                 <img
                   src={current.file_url ?? ''}
-                  alt={current.title}
+                  alt=""
                   className="max-w-full max-h-full object-contain"
                 />
               )}
             </div>
 
             <div className="px-4 py-2 text-center bg-white">
-              <p className="font-semibold text-gray-800 truncate">{current.title}</p>
               <p className="text-xs text-gray-400">
                 {currentIndex + 1} / {ads.length} · wischen zum Blättern
               </p>
