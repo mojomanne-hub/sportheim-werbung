@@ -40,7 +40,6 @@ export default function GalleryPage() {
   }
 
   const close = () => setOpenIndex(null)
-
   const next = () => setCurrentIndex((i) => Math.min(i + 1, ads.length - 1))
   const prev = () => setCurrentIndex((i) => Math.max(i - 1, 0))
 
@@ -110,52 +109,56 @@ export default function GalleryPage() {
 
       {current && (
         <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/90 flex items-center justify-center p-3 z-50"
           onClick={close}
         >
           <div
-            className="relative bg-white rounded-2xl overflow-hidden w-full max-w-md"
+            className="relative bg-white rounded-2xl overflow-hidden w-full max-w-sm flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
             <button
               onClick={close}
-              className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center hover:bg-black/80"
+              className="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-black/60 text-white text-xl flex items-center justify-center"
               aria-label="Schließen"
             >
               ×
             </button>
 
-            <div className="aspect-[3/4] bg-gray-100">
+            {/* Punkte oben, immer sichtbar */}
+            <div className="flex justify-center gap-2 pt-3 pb-2 bg-white">
+              {ads.map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    i === currentIndex ? 'bg-[#1e4a8c]' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div className="flex-1 min-h-0 bg-gray-100 flex items-center justify-center">
               {current.file_type === 'video' ? (
                 <video
                   key={current.id}
                   src={current.file_url ?? ''}
                   controls
                   autoPlay
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-full object-contain"
                 />
               ) : (
                 <img
                   src={current.file_url ?? ''}
                   alt={current.title}
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-full object-contain"
                 />
               )}
             </div>
 
-            <div className="px-4 py-3 text-center">
-              <p className="font-semibold text-gray-800">{current.title}</p>
-              <div className="flex justify-center gap-2 mt-2">
-                {ads.map((_, i) => (
-                  <span
-                    key={i}
-                    className={`w-2 h-2 rounded-full ${i === currentIndex ? 'bg-[#1e4a8c]' : 'bg-gray-300'}`}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
+            <div className="px-4 py-2 text-center bg-white">
+              <p className="font-semibold text-gray-800 truncate">{current.title}</p>
+              <p className="text-xs text-gray-400">
                 {currentIndex + 1} / {ads.length} · wischen zum Blättern
               </p>
             </div>
