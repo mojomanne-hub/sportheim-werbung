@@ -15,7 +15,9 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [fullscreen, setFullscreen] = useState(false)
   const touchStartX = useRef<number | null>(null)
+  const viewerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -34,12 +36,35 @@ export default function GalleryPage() {
     load()
   }, [])
 
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setFullscreen(false)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
   const openAt = (index: number) => {
     setCurrentIndex(index)
     setOpenIndex(index)
   }
 
-  const close = () => setOpenIndex(null)
+  const close = async () => {
+    if (document.fullscreenElement) await document.exitFullscreen()
+    setFullscreen(false)
+    setOpenIndex(null)
+  }
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await viewerRef.current?.requestFullscreen?.()
+      setFullscreen(true)
+    } else {
+      await document.exitFullscreen()
+      setFullscreen(false)
+    }
+  }
+
   const next = () => setCurrentIndex((i) => Math.min(i + 1, ads.length - 1))
   const prev = () => setCurrentIndex((i) => Math.max(i - 1, 0))
 
@@ -111,7 +136,12 @@ export default function GalleryPage() {
           onClick={close}
         >
           <div
-            className="relative bg-white rounded-2xl overflow-hidden w-full max-w-sm flex flex-col max-h-[92vh]"
+            ref={viewerRef}
+            className={`relative bg-white overflow-hidden flex flex-col ${
+              fullscreen
+                ? 'w-screen h-screen rounded-none'
+                : 'w-full max-w-sm max-h-[92vh] rounded-2xl'
+            }`}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
@@ -153,10 +183,17 @@ export default function GalleryPage() {
               )}
             </div>
 
-            <div className="px-4 py-2 text-center bg-white">
+            <div className="px-4 py-2 flex items-center justify-between bg-white">
               <p className="text-xs text-gray-400">
                 {currentIndex + 1} / {ads.length} · wischen zum Blättern
               </p>
+              <button
+                onClick={toggleFullscreen}
+                className="w-10 h-10 rounded-full bg-[#1e4a8c] text-white flex items-center justify-center shadow"
+                aria-label="Vollbild"
+              >
+                {fullscreen ? '⤡' : '⤢'}
+              </button>
             </div>
           </div>
         </div>
