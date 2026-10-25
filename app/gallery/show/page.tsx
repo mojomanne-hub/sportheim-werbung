@@ -67,7 +67,12 @@ export default function GalleryShowPage() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  // Blättern nur mit einem Finger, Zwei-Finger-Zoom bleibt frei
   const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length > 1) {
+      touchStartX.current = null
+      return
+    }
     touchStartX.current = e.touches[0].clientX
   }
 
@@ -88,16 +93,14 @@ export default function GalleryShowPage() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Schließen: zurück zur Übersicht */}
       <Link
         href="/gallery"
-        className="absolute top-3 right-3 z-20 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-2xl"
+        className="absolute top-3 right-3 z-20 w-13 h-13 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-2xl"
         aria-label="Zur Übersicht"
       >
         ×
       </Link>
 
-      {/* Vollbild-Button */}
       <button
         onClick={toggleFullscreen}
         className="absolute top-3 left-3 z-20 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center"
@@ -118,7 +121,10 @@ export default function GalleryShowPage() {
 
       {current && (
         <>
-          <div className="flex-1 min-h-0 flex items-center justify-center p-2">
+          <div
+            className="flex-1 min-h-0 flex items-center justify-center p-2 overflow-auto"
+            style={{ touchAction: 'pinch-zoom' }}
+          >
             {current.file_type === 'video' ? (
               <video
                 key={current.id}
@@ -132,11 +138,11 @@ export default function GalleryShowPage() {
                 src={current.file_url ?? ''}
                 alt=""
                 className="max-w-full max-h-full object-contain"
+                style={{ touchAction: 'pinch-zoom' }}
               />
             )}
           </div>
 
-          {/* Punkte unten */}
           <div className="flex justify-center gap-2 pb-4">
             {ads.map((_, i) => (
               <span
