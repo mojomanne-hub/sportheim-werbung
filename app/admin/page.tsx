@@ -12,7 +12,16 @@ type Ad = {
   display_seconds: number
   sort_order: number
   active: boolean
+  transition: string | null
 }
+
+const TRANSITION_OPTIONS = [
+  { value: 'none', label: 'Keiner' },
+  { value: 'fade', label: 'Überblenden' },
+  { value: 'slide', label: 'Wischen' },
+  { value: 'zoom', label: 'Zoom' },
+  { value: 'up', label: 'Hochschieben' },
+]
 
 export default function AdminPage() {
   const [ads, setAds] = useState<Ad[]>([])
@@ -27,6 +36,7 @@ export default function AdminPage() {
   const [widgetCode, setWidgetCode] = useState('')
   const [widgetSeconds, setWidgetSeconds] = useState(15)
   const [uploadSeconds, setUploadSeconds] = useState(7)
+  const [uploadTransition, setUploadTransition] = useState('fade')
   const [savingWidget, setSavingWidget] = useState(false)
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -74,7 +84,7 @@ export default function AdminPage() {
     )
   }
 
-  const uploadSingleFile = async (file: File, sortOrder: number, seconds: number) => {
+  const uploadSingleFile = async (file: File, sortOrder: number, seconds: number, transition: string) => {
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
     const fileType: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image'
@@ -98,6 +108,7 @@ export default function AdminPage() {
       display_seconds: seconds,
       sort_order: sortOrder,
       active: true,
+      transition,
     })
 
     if (insertError) throw new Error(insertError.message)
@@ -114,6 +125,7 @@ export default function AdminPage() {
       display_seconds: seconds,
       sort_order: 1,
       active: true,
+      transition: 'fade',
     })
 
     if (error) {
@@ -136,7 +148,7 @@ export default function AdminPage() {
 
     for (let i = 0; i < files.length; i++) {
       try {
-        await uploadSingleFile(files[i], i + 1, uploadSeconds)
+        await uploadSingleFile(files[i], i + 1, uploadSeconds, uploadTransition)
         setUploadProgress({ done: i + 1, total: files.length })
       } catch (err: any) {
         alert(`Fehler bei "${files[i].name}": ${err.message}`)
@@ -348,6 +360,19 @@ export default function AdminPage() {
             <span className="text-sm text-gray-400">Sek.</span>
           </div>
 
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <label className="text-sm text-gray-400">Übergang:</label>
+            <select
+              value={uploadTransition}
+              onChange={(e) => setUploadTransition(e.target.value)}
+              className="bg-[#0d1220] border border-gray-700 rounded-lg px-2 py-1 text-sm text-gray-100"
+            >
+              {TRANSITION_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
           {uploading && uploadProgress && (
             <p className="text-blue-400 text-sm mt-4">Lädt: {uploadProgress.done}/{uploadProgress.total}</p>
           )}
@@ -455,6 +480,22 @@ export default function AdminPage() {
                     {ad.file_type === 'video' ? 'Video (volle Länge)' : `${ad.display_seconds}s`}
                   </p>
                 </div>
+
+                {ad.file_type !== 'video' && (
+                  <select
+                    value={ad.transition ?? 'fade'}
+                    onChange={async (e) => {
+                      await supabase.from('werbeanzeigen').update({ transition: e.target.value }).eq('id', ad.id)
+                      fetchAds()
+                    }}
+                    className="bg-[#161c2c] border border-gray-700 rounded-lg px-1 py-1 text-xs text-gray-100"
+                    title="Übergang beim Einblenden"
+                  >
+                    {TRANSITION_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                )}
 
                 {ad.file_type !== 'video' && (
                   <input

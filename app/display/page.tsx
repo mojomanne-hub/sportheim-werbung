@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
+type TransitionType = 'none' | 'fade' | 'slide' | 'zoom' | 'up'
+
 type Ad = {
   id: string
   title: string
@@ -12,7 +14,35 @@ type Ad = {
   display_seconds: number
   sort_order: number
   active: boolean
+  transition: TransitionType | null
 }
+
+const TRANSITIONS: TransitionType[] = ['none', 'fade', 'slide', 'zoom', 'up']
+
+// Übergang sicher auswählen, unbekannte Werte fallen auf "fade" zurück
+const getTransition = (value: string | null | undefined): TransitionType => {
+  return TRANSITIONS.includes(value as TransitionType) ? (value as TransitionType) : 'fade'
+}
+
+// CSS-Animationen für das Einblenden
+const transitionStyles = `
+  @keyframes tIn-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes tIn-slide {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes tIn-zoom {
+    from { transform: scale(1.15); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes tIn-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+`
 
 export default function DisplayPage() {
   const [ads, setAds] = useState<Ad[]>([])
@@ -100,33 +130,40 @@ export default function DisplayPage() {
   }
 
   const current = ads[currentIndex]
+  const transition = getTransition(current.transition)
+  // Übergang läuft jedes Mal neu, weil der Wrapper per key gewechselt wird
+  const animation = transition === 'none' ? undefined : `tIn-${transition} 0.8s ease-out`
 
   return (
-    <div className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
-      {current.file_type === 'widget' ? (
-        <iframe
-          key={current.id}
-          src={`/widget/${current.id}`}
-          className="w-full h-full border-0"
-          title={current.title}
-        />
-      ) : current.file_type === 'image' ? (
-        <img
-          key={current.id}
-          src={current.file_url ?? ''}
-          alt={current.title}
-          className="w-full h-full object-contain"
-        />
-      ) : (
-        <video
-          key={current.id}
-          src={current.file_url ?? ''}
-          autoPlay
-          muted
-          onEnded={handleVideoEnded}
-          className="w-full h-full object-contain"
-        />
-      )}
+    <div className="w-screen h-screen bg-black overflow-hidden">
+      <style>{transitionStyles}</style>
+      <div
+        key={current.id}
+        className="w-full h-full flex items-center justify-center"
+        style={{ animation }}
+      >
+        {current.file_type === 'widget' ? (
+          <iframe
+            src={`/widget/${current.id}`}
+            className="w-full h-full border-0"
+            title={current.title}
+          />
+        ) : current.file_type === 'image' ? (
+          <img
+            src={current.file_url ?? ''}
+            alt={current.title}
+            className="w-full h-full object-contain"
+          />
+        ) : (
+          <video
+            src={current.file_url ?? ''}
+            autoPlay
+            muted
+            onEnded={handleVideoEnded}
+            className="w-full h-full object-contain"
+          />
+        )}
+      </div>
     </div>
   )
 }
